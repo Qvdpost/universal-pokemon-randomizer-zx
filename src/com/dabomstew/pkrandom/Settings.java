@@ -52,6 +52,7 @@ public class Settings {
     public static final int LENGTH_OF_SETTINGS_DATA = 51;
 
     private CustomNamesSet customNames;
+    private BannedPokemonSet bannedPokemon;
 
     private String romName;
     private boolean updatedFromOldVersion = false;
@@ -1021,6 +1022,13 @@ public class Settings {
 
     public Settings setCustomNames(CustomNamesSet customNames) {
         this.customNames = customNames;
+        return this;
+    }
+
+    public BannedPokemonSet getBannedPokemon() { return bannedPokemon;}
+
+    public Settings setBannedPokemon(BannedPokemonSet bannedPokemon) {
+        this.bannedPokemon = bannedPokemon;
         return this;
     }
 

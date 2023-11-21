@@ -60,7 +60,7 @@ public class FileFunctions {
     }
 
     private static List<String> overrideFiles = Arrays.asList(SysConstants.customNamesFile,
-            SysConstants.tclassesFile, SysConstants.tnamesFile, SysConstants.nnamesFile);
+            SysConstants.tclassesFile, SysConstants.tnamesFile, SysConstants.nnamesFile, SysConstants.bannedPokemonFile);
 
     public static boolean configExists(String filename) {
         if (overrideFiles.contains(filename)) {
@@ -95,6 +95,13 @@ public class FileFunctions {
         CustomNamesSet cns = new CustomNamesSet(is);
         is.close();
         return cns;
+    }
+
+    public static BannedPokemonSet getBannedPokemon() throws IOException {
+        InputStream is = openConfig(SysConstants.bannedPokemonFile);
+        BannedPokemonSet bnd = new BannedPokemonSet(is);
+        is.close();
+        return bnd;
     }
 
     public static long readFullLong(byte[] data, int offset) {

@@ -329,6 +329,7 @@ public class NewRandomizerGUI {
 
     private JPopupMenu settingsMenu;
     private JMenuItem customNamesEditorMenuItem;
+    private JMenuItem bannedPokemonEditorMenuItem;
     private JMenuItem applyGameUpdateMenuItem;
     private JMenuItem removeGameUpdateMenuItem;
     private JMenuItem loadGetSettingsMenuItem;
@@ -502,6 +503,7 @@ public class NewRandomizerGUI {
         saveSettingsButton.addActionListener(e -> saveQS());
         settingsButton.addActionListener(e -> settingsMenu.show(settingsButton,0,settingsButton.getHeight()));
         customNamesEditorMenuItem.addActionListener(e -> new CustomNamesEditorDialog(frame));
+        bannedPokemonEditorMenuItem.addActionListener(e -> new BannedPokemonEditorDialog(frame));
         applyGameUpdateMenuItem.addActionListener(e -> applyGameUpdateMenuItemActionPerformed());
         removeGameUpdateMenuItem.addActionListener(e -> removeGameUpdateMenuItemActionPerformed());
         loadGetSettingsMenuItem.addActionListener(e -> loadGetSettingsMenuItemActionPerformed());
@@ -702,6 +704,10 @@ public class NewRandomizerGUI {
         customNamesEditorMenuItem = new JMenuItem();
         customNamesEditorMenuItem.setText(bundle.getString("GUI.customNamesEditorMenuItem.text"));
         settingsMenu.add(customNamesEditorMenuItem);
+
+        bannedPokemonEditorMenuItem = new JMenuItem();
+        bannedPokemonEditorMenuItem.setText(bundle.getString("GUI.bannedPokemonEditorMenuItem.text"));
+        settingsMenu.add(bannedPokemonEditorMenuItem);
 
         loadGetSettingsMenuItem = new JMenuItem();
         loadGetSettingsMenuItem.setText(bundle.getString("GUI.loadGetSettingsMenuItem.text"));
@@ -926,9 +932,10 @@ public class NewRandomizerGUI {
 
         try {
             CustomNamesSet cns = FileFunctions.getCustomNames();
-            performRandomization(fh.getAbsolutePath(), seed, cns, outputType == SaveType.DIRECTORY);
+            BannedPokemonSet bnd = FileFunctions.getBannedPokemon();
+            performRandomization(fh.getAbsolutePath(), seed, cns, bnd, outputType == SaveType.DIRECTORY);
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(frame, bundle.getString("GUI.cantLoadCustomNames"));
+            JOptionPane.showMessageDialog(frame, bundle.getString("GUI.cantLoadCustomNames or GUI.cantLoadBannedPokemon"));
         }
     }
 
@@ -997,8 +1004,8 @@ public class NewRandomizerGUI {
         }
     }
 
-    private void performRandomization(final String filename, final long seed, CustomNamesSet customNames, boolean saveAsDirectory) {
-        final Settings settings = createSettingsFromState(customNames);
+    private void performRandomization(final String filename, final long seed, CustomNamesSet customNames, BannedPokemonSet bannedPokemon, boolean saveAsDirectory) {
+        final Settings settings = createSettingsFromState(customNames, bannedPokemon);
         final boolean raceMode = settings.isRaceMode();
         final boolean batchRandomization = batchRandomizationSettings.isBatchRandomizationEnabled() && !presetMode;
         // Setup verbose log
@@ -1199,7 +1206,7 @@ public class NewRandomizerGUI {
                 // Apply the seed we were given
                 RandomSource.seed(seed);
                 presetMode = true;
-                performRandomization(fh.getAbsolutePath(), seed, pld.getCustomNames(), outputType == SaveType.DIRECTORY);
+                performRandomization(fh.getAbsolutePath(), seed, pld.getCustomNames(), pld.getBannedPokemon(), outputType == SaveType.DIRECTORY);
             }
         }
 
@@ -1695,7 +1702,7 @@ public class NewRandomizerGUI {
         this.enableOrDisableSubControls();
     }
 
-    private Settings createSettingsFromState(CustomNamesSet customNames) {
+    private Settings createSettingsFromState(CustomNamesSet customNames, BannedPokemonSet bannedPokemon) {
         Settings settings = new Settings();
         settings.setRomName(this.romHandler.getROMName());
 
@@ -1894,12 +1901,13 @@ public class NewRandomizerGUI {
         settings.setCurrentMiscTweaks(currentMiscTweaks);
 
         settings.setCustomNames(customNames);
+        settings.setBannedPokemon(bannedPokemon);
 
         return settings;
     }
 
     private Settings getCurrentSettings() throws IOException {
-        return createSettingsFromState(FileFunctions.getCustomNames());
+        return createSettingsFromState(FileFunctions.getCustomNames(), FileFunctions.getBannedPokemon());
     }
 
     private void attemptToLogException(Exception ex, String baseMessageKey, String noLogMessageKey,
