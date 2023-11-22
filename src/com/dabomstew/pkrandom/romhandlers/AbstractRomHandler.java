@@ -195,7 +195,9 @@ public abstract class AbstractRomHandler implements RomHandler {
 
     private void removeBannedPokemon(List<Pokemon> pokemonPool, List<Pokemon> allPokemon, BannedPokemonSet bannedPokemon) {
         for (int i : bannedPokemon.getBannedPokemon()) {
-            pokemonPool.remove(allPokemon.get(i));
+            if (i < pokemonPool.size()) {
+                pokemonPool.remove(allPokemon.get(i));
+            }
         }
     }
 
