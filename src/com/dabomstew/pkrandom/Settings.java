@@ -598,6 +598,7 @@ public class Settings {
         try {
             writeFullInt(out, (int) checksum.getValue());
             writeFullInt(out, FileFunctions.getFileChecksum(SysConstants.customNamesFile));
+            writeFullInt(out, FileFunctions.getFileChecksum(SysConstants.bannedPokemonFile));
         } catch (IOException e) {
             e.printStackTrace(); // better than nothing
         }
@@ -2382,12 +2383,12 @@ public class Settings {
 
     private static void checkChecksum(byte[] data) {
         // Check the checksum
-        ByteBuffer buf = ByteBuffer.allocate(4).put(data, data.length - 8, 4);
+        ByteBuffer buf = ByteBuffer.allocate(4).put(data, data.length - 12, 4);
         buf.rewind();
         int crc = buf.getInt();
 
         CRC32 checksum = new CRC32();
-        checksum.update(data, 0, data.length - 8);
+        checksum.update(data, 0, data.length - 12);
 
         if ((int) checksum.getValue() != crc) {
             throw new IllegalArgumentException("Malformed input string");

@@ -142,7 +142,7 @@ public class PresetLoadDialog extends JDialog {
         }
 
         try {
-            name = this.parentGUI.getValidRequiredROMName(configString.substring(3), customNames);
+            name = this.parentGUI.getValidRequiredROMName(configString.substring(3), customNames, bannedPokemon);
         } catch (InvalidSupplementFilesException ex) {
             safelyClearFields();
             invalidValues();

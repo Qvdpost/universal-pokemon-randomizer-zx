@@ -112,7 +112,12 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
 
     private boolean save() {
         BannedPokemonSet bnd = new BannedPokemonSet();
-        bnd.setBannedPokemon(getPokemonList(bannedPokemonText));
+        try {
+            bnd.setBannedPokemon(getPokemonList(bannedPokemonText));
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Banned Pokemon are only allowed as numeric Pokedex ID's.");
+            return false;
+        }
         try {
             byte[] data = bnd.getBytes();
             FileFunctions.writeBytesToFile(SysConstants.ROOT_PATH + SysConstants.bannedPokemonFile, data);
@@ -142,7 +147,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         }
     }
 
-    private List<Integer> getPokemonList(JTextArea textArea) {
+    private List<Integer> getPokemonList(JTextArea textArea) throws NumberFormatException {
         String contents = textArea.getText();
         // standardize newlines
         contents = contents.replace("\r\n", "\n");

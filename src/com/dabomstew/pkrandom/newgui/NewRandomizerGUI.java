@@ -337,7 +337,7 @@ public class NewRandomizerGUI {
     private JMenuItem batchRandomizationMenuItem;
 
     private ImageIcon emptyIcon = new ImageIcon(getClass().getResource("/com/dabomstew/pkrandom/newgui/emptyIcon.png"));
-    private boolean haveCheckedCustomNames, unloadGameOnSuccess;
+    private boolean haveCheckedCustomNames, haveCheckedBannedPokemon, unloadGameOnSuccess;
     private Map<String, String> gameUpdates = new TreeMap<>();
 
     private List<String> trainerSettings = new ArrayList<>();
@@ -357,6 +357,7 @@ public class NewRandomizerGUI {
                 new Gen6RomHandler.Factory(), new Gen7RomHandler.Factory() };
 
         haveCheckedCustomNames = false;
+        haveCheckedBannedPokemon = false;
         attemptReadConfig();
         initExplicit();
         initTweaksPanel();
@@ -369,6 +370,10 @@ public class NewRandomizerGUI {
 
         if (!haveCheckedCustomNames) {
             checkCustomNames();
+        }
+
+        if (!haveCheckedBannedPokemon) {
+            checkBannedPokemon();
         }
 
         new Thread(() -> {
@@ -935,7 +940,7 @@ public class NewRandomizerGUI {
             BannedPokemonSet bnd = FileFunctions.getBannedPokemon();
             performRandomization(fh.getAbsolutePath(), seed, cns, bnd, outputType == SaveType.DIRECTORY);
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(frame, bundle.getString("GUI.cantLoadCustomNames or GUI.cantLoadBannedPokemon"));
+            JOptionPane.showMessageDialog(frame, bundle.getString("GUI.cantLoadPresetFiles"));
         }
     }
 
@@ -1101,7 +1106,7 @@ public class NewRandomizerGUI {
                                 new PresetMakeDialog(frame, seed, configString);
                             } catch (IOException ex) {
                                 JOptionPane.showMessageDialog(frame,
-                                        bundle.getString("GUI.cantLoadCustomNames"));
+                                        bundle.getString("GUI.cantLoadPresetFiles"));
                             }
 
                             // Done
@@ -1971,14 +1976,17 @@ public class NewRandomizerGUI {
         }
     }
 
-    public String getValidRequiredROMName(String config, CustomNamesSet customNames)
+    public String getValidRequiredROMName(String config, CustomNamesSet customNames, BannedPokemonSet bannedPokemon)
             throws UnsupportedEncodingException, InvalidSupplementFilesException {
         try {
-            Utils.validatePresetSupplementFiles(config, customNames);
+            Utils.validatePresetSupplementFiles(config, customNames, bannedPokemon);
         } catch (InvalidSupplementFilesException e) {
             switch (e.getType()) {
                 case CUSTOM_NAMES:
                     JOptionPane.showMessageDialog(null, bundle.getString("GUI.presetDifferentCustomNames"));
+                    break;
+                case BANNED_POKEMON:
+                    JOptionPane.showMessageDialog(null, bundle.getString("GUI.presetDifferentBannedPokemon"));
                     break;
                 default:
                     throw e;
@@ -3846,6 +3854,20 @@ public class NewRandomizerGUI {
             attemptWriteConfig();
         }
 
+    }
+
+    private void checkBannedPokemon() {
+        try {
+            File currentFile = new File(SysConstants.ROOT_PATH + SysConstants.bannedPokemonFile);
+            if (currentFile.exists()) {
+                BannedPokemonSet bannedPokemon = FileFunctions.getBannedPokemon();
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(frame, bundle.getString("GUI.invalidBannedPokemon"));
+            return;
+        }
+
+        haveCheckedBannedPokemon = true;
     }
 
     private void attemptReadConfig() {

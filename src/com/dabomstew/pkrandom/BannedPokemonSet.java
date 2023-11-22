@@ -72,7 +72,11 @@ public class BannedPokemonSet {
         while (sc.hasNextLine()) {
             String id = sc.nextLine().trim();
             if (!id.isEmpty()) {
-                ids.add(Integer.parseInt(id));
+                try {
+                    ids.add(Integer.parseInt(id));
+                } catch (NumberFormatException e) {
+                    throw new IOException("File contains non-numeric values.");
+                }
             }
         }
         sc.close();
