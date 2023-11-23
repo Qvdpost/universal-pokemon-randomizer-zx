@@ -55,7 +55,7 @@ public class GenRestrictions {
 
     public int toInt() {
         return makeIntSelected(allow_gen1, allow_gen2, allow_gen3, allow_gen4, allow_gen5, allow_gen6, allow_gen7,
-                allow_evolutionary_relatives);
+                allow_evolutionary_relatives, ban_pokemon);
     }
 
     public void limitToGen(int generation) {
