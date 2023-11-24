@@ -1,7 +1,8 @@
 package com.dabomstew.pkrandom;
 
         /*----------------------------------------------------------------------------*/
-        /*--  CustomNamesSet.java - handles functionality related to custom names.  --*/
+        /*--  BannedPokemonSet.java - handles functionality related to banned       --*/
+        /*--  Pokemon                                                               --*/
         /*--                                                                        --*/
         /*--  Part of "Universal Pokemon Randomizer ZX" by the UPR-ZX team          --*/
         /*--  Originally part of "Universal Pokemon Randomizer" by Dabomstew        --*/
