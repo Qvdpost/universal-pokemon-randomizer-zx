@@ -508,7 +508,7 @@ public class NewRandomizerGUI {
         saveSettingsButton.addActionListener(e -> saveQS());
         settingsButton.addActionListener(e -> settingsMenu.show(settingsButton,0,settingsButton.getHeight()));
         customNamesEditorMenuItem.addActionListener(e -> new CustomNamesEditorDialog(frame));
-        bannedPokemonEditorMenuItem.addActionListener(e -> new BannedPokemonEditorDialog(frame));
+        bannedPokemonEditorMenuItem.addActionListener(e -> new BannedPokemonEditorDialog(frame, romHandler));
         applyGameUpdateMenuItem.addActionListener(e -> applyGameUpdateMenuItemActionPerformed());
         removeGameUpdateMenuItem.addActionListener(e -> removeGameUpdateMenuItemActionPerformed());
         loadGetSettingsMenuItem.addActionListener(e -> loadGetSettingsMenuItemActionPerformed());

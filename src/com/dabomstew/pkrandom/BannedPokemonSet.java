@@ -25,20 +25,18 @@ package com.dabomstew.pkrandom;
         /*--  along with this program. If not, see <http://www.gnu.org/licenses/>.  --*/
         /*----------------------------------------------------------------------------*/
 
-        import java.io.ByteArrayInputStream;
-        import java.io.ByteArrayOutputStream;
-        import java.io.FileNotFoundException;
-        import java.io.IOException;
-        import java.io.InputStream;
-        import java.io.OutputStream;
-        import java.util.ArrayList;
-        import java.util.Collections;
-        import java.util.List;
-        import java.util.Scanner;
+import com.dabomstew.pkrandom.pokemon.Pokemon;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.*;
 
 public class BannedPokemonSet {
 
-    private List<Integer> bannedPokemon;
+    private Set<Integer> bannedPokemon;
 
     private static final int BANNED_POKEMON_VERSION = 1;
 
@@ -55,10 +53,10 @@ public class BannedPokemonSet {
     // Alternate constructor: blank all lists
     // Used for importing old names and on the editor dialog.
     public BannedPokemonSet() {
-        bannedPokemon = new ArrayList<>();
+        bannedPokemon = new HashSet<>();
     }
 
-    private List<Integer> readIDsBlock(InputStream in) throws IOException {
+    private Set<Integer> readIDsBlock(InputStream in) throws IOException {
         // Read the size of the block to come.
         byte[] szData = FileFunctions.readFullyIntoBuffer(in, 4);
         int size = FileFunctions.readFullIntBigEndian(szData, 0);
@@ -82,7 +80,7 @@ public class BannedPokemonSet {
         }
         sc.close();
 
-        return ids;
+        return new HashSet<>(ids);
     }
 
     public byte[] getBytes() throws IOException {
@@ -95,16 +93,16 @@ public class BannedPokemonSet {
         return baos.toByteArray();
     }
 
-    private void writePokemonBlock(OutputStream out, List<Integer> pokemon) throws IOException {
+    private void writePokemonBlock(OutputStream out, Set<Integer> pokemon) throws IOException {
         String newln = SysConstants.LINE_SEP;
         StringBuilder outIDs = new StringBuilder();
         boolean first = true;
-        for (Integer uid : pokemon) {
+        for (Integer poke : pokemon) {
             if (!first) {
                 outIDs.append(newln);
             }
             first = false;
-            outIDs.append(uid);
+            outIDs.append(poke);
         }
         byte[] pokemonData = outIDs.toString().getBytes("UTF-8");
         byte[] szData = new byte[4];
@@ -113,10 +111,16 @@ public class BannedPokemonSet {
         out.write(pokemonData);
     }
 
-    public List<Integer> getBannedPokemon() {
-        return Collections.unmodifiableList(bannedPokemon);
+    public Set<Integer> getBannedPokemon() {
+        return Collections.unmodifiableSet(bannedPokemon);
     }
 
+
+    public void addBannedPokemon(Integer pokemon) {
+        bannedPokemon.add(pokemon);
+    }
+
+    public void removeBannedPokemon(Integer pokemon) { bannedPokemon.remove(pokemon); }
 
     public void setBannedPokemon(List<Integer> pokemon) {
         bannedPokemon.clear();
