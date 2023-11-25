@@ -59,6 +59,12 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
     public BannedPokemonEditorDialog(java.awt.Frame parent, RomHandler romHandler) {
         super(parent, true);
 
+        if (romHandler == null) {
+            java.awt.EventQueue.invokeLater(() -> JOptionPane.showMessageDialog(BannedPokemonEditorDialog.this,
+                    "You need to load a rom to use the Banned Pokemon Editor."));
+            return;
+        }
+
         initComponents();
         setLocationRelativeTo(parent);
 
