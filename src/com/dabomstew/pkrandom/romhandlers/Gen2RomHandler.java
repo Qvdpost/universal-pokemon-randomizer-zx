@@ -2989,6 +2989,63 @@ public class Gen2RomHandler extends AbstractGBCRomHandler {
     }
 
     @Override
+    public BufferedImage getPokemonImage(int pkIndex) {
+        Pokemon mascot = pokemonList.get(pkIndex);
+        while (mascot.number == Species.unown) {
+            // Unown is banned as handling it would add a ton of extra effort.
+            mascot = randomPokemon();
+        }
+
+        // Each Pokemon has a front and back pic with a bank and a pointer
+        // (3*2=6)
+        // There is no zero-entry.
+        int picPointer = romEntry.getValue("PicPointers") + (mascot.number - 1) * 6;
+        int picWidth = mascot.picDimensions & 0x0F;
+        int picHeight = (mascot.picDimensions >> 4) & 0x0F;
+
+        int picBank = (rom[picPointer] & 0xFF);
+        if (romEntry.isCrystal) {
+            // Crystal pic banks are offset by x36 for whatever reason.
+            picBank += 0x36;
+        } else {
+            // Hey, G/S are dumb too! Arbitrarily redirected bank numbers.
+            if (picBank == 0x13) {
+                picBank = 0x1F;
+            } else if (picBank == 0x14) {
+                picBank = 0x20;
+            } else if (picBank == 0x1F) {
+                picBank = 0x2E;
+            }
+        }
+        int picOffset = calculateOffset(picBank, readWord(picPointer + 1));
+
+        Gen2Decmp mscSprite = new Gen2Decmp(rom, picOffset, picWidth, picHeight);
+        int w = picWidth * 8;
+        int h = picHeight * 8;
+
+        // Palette?
+        // Two colors per Pokemon + two more for shiny, unlike pics there is a
+        // zero-entry.
+        // Black and white are left alone at the start and end of the palette.
+        int[] palette = new int[] { 0xFFFFFFFF, 0xFFAAAAAA, 0xFF666666, 0xFF000000 };
+        int paletteOffset = romEntry.getValue("PokemonPalettes") + mascot.number * 8;
+        if (random.nextInt(10) == 0) {
+            // Use shiny instead
+            paletteOffset += 4;
+        }
+        for (int i = 0; i < 2; i++) {
+            palette[i + 1] = GFXFunctions.conv16BitColorToARGB(readWord(paletteOffset + i * 2));
+        }
+
+        byte[] data = mscSprite.getFlattenedData();
+
+        BufferedImage bim = GFXFunctions.drawTiledImage(data, palette, w, h, 8);
+        GFXFunctions.pseudoTransparency(bim, palette[0]);
+
+        return bim;
+    }
+
+    @Override
     public void writeCheckValueToROM(int value) {
         if (romEntry.getValue("CheckValueOffset") > 0) {
             int cvOffset = romEntry.getValue("CheckValueOffset");

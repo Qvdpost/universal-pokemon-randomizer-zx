@@ -104,6 +104,17 @@ public class FileFunctions {
         return bnd;
     }
 
+    public static byte[] openPokemonIcon(String filename) throws IOException {
+        byte[] bytes = new byte[] {};
+        try {
+            InputStream is = FileFunctions.class.getResourceAsStream("/icons/pokemon/" + filename + ".png");
+            bytes = readFullyIntoBuffer(is, is.available());
+        } catch (NullPointerException e) {
+            throw new IOException("Could not read file.");
+        }
+        return bytes;
+    }
+
     public static long readFullLong(byte[] data, int offset) {
         ByteBuffer buf = ByteBuffer.allocate(8);
         buf.order(ByteOrder.LITTLE_ENDIAN);

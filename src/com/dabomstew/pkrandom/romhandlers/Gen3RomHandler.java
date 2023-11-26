@@ -4421,6 +4421,30 @@ public class Gen3RomHandler extends AbstractGBRomHandler {
     }
 
     @Override
+    public BufferedImage getPokemonImage(int pkIndex) {
+        Pokemon mascotPk = pokemonList.get(pkIndex);
+        int mascotPokemon = pokedexToInternal[mascotPk.number];
+        int frontSprites = romEntry.getValue("FrontSprites");
+        int palettes = romEntry.getValue("PokemonPalettes");
+        int fsOffset = readPointer(frontSprites + mascotPokemon * 8);
+        int palOffset = readPointer(palettes + mascotPokemon * 8);
+
+        byte[] trueFrontSprite = DSDecmp.Decompress(rom, fsOffset);
+        byte[] truePalette = DSDecmp.Decompress(rom, palOffset);
+
+        // Convert palette into RGB
+        int[] convPalette = new int[16];
+        // Leave palette[0] as 00000000 for transparency
+        for (int i = 0; i < 15; i++) {
+            int palValue = readWord(truePalette, i * 2 + 2);
+            convPalette[i + 1] = GFXFunctions.conv16BitColorToARGB(palValue);
+        }
+
+        // Make image, 4bpp
+        return GFXFunctions.drawTiledImage(trueFrontSprite, convPalette, 64, 64, 4);
+    }
+
+    @Override
     public List<Integer> getAllHeldItems() {
         return Gen3Constants.allHeldItems;
     }

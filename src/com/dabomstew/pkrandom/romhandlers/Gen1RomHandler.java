@@ -2916,4 +2916,58 @@ public class Gen1RomHandler extends AbstractGBCRomHandler {
         return bim;
     }
 
+    @Override
+    public BufferedImage getPokemonImage(int pkIndex) {
+        Pokemon mascot = pokemonList.get(pkIndex);
+        int idx = pokeNumToRBYTable[mascot.number];
+        int fsBank;
+        // define (by index number) the bank that a pokemon's image is in
+        // using pokered code
+        if (mascot.number == Species.mew && !romEntry.isYellow) {
+            fsBank = 1;
+        } else if (idx < 0x1F) {
+            fsBank = 0x9;
+        } else if (idx < 0x4A) {
+            fsBank = 0xA;
+        } else if (idx < 0x74 || idx == 0x74 && mascot.frontSpritePointer > 0x7000) {
+            fsBank = 0xB;
+        } else if (idx < 0x99 || idx == 0x99 && mascot.frontSpritePointer > 0x7000) {
+            fsBank = 0xC;
+        } else {
+            fsBank = 0xD;
+        }
+
+        int fsOffset = calculateOffset(fsBank, mascot.frontSpritePointer);
+        Gen1Decmp mscSprite = new Gen1Decmp(rom, fsOffset);
+        mscSprite.decompress();
+        mscSprite.transpose();
+        int w = mscSprite.getWidth();
+        int h = mscSprite.getHeight();
+
+        // Palette?
+        int[] palette;
+        if (romEntry.getValue("MonPaletteIndicesOffset") > 0 && romEntry.getValue("SGBPalettesOffset") > 0) {
+            int palIndex = rom[romEntry.getValue("MonPaletteIndicesOffset") + mascot.number] & 0xFF;
+            int palOffset = romEntry.getValue("SGBPalettesOffset") + palIndex * 8;
+            if (romEntry.isYellow && romEntry.nonJapanese == 1) {
+                // Non-japanese Yellow can use GBC palettes instead.
+                // Stored directly after regular SGB palettes.
+                palOffset += 320;
+            }
+            palette = new int[4];
+            for (int i = 0; i < 4; i++) {
+                palette[i] = GFXFunctions.conv16BitColorToARGB(readWord(palOffset + i * 2));
+            }
+        } else {
+            palette = new int[] { 0xFFFFFFFF, 0xFFAAAAAA, 0xFF666666, 0xFF000000 };
+        }
+
+        byte[] data = mscSprite.getFlattenedData();
+
+        BufferedImage bim = GFXFunctions.drawTiledImage(data, palette, w, h, 8);
+        GFXFunctions.pseudoTransparency(bim, palette[0]);
+
+        return bim;
+    }
+
 }

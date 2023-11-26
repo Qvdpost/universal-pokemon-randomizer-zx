@@ -1327,9 +1327,12 @@ public class Randomizer {
 
         log.println("--Banned Pokemon--");
         for (int i : settings.getBannedPokemon().getBannedPokemon()) {
-            Pokemon poke = romHandler.getPokemon().get(i);
-            log.printf("%s (%s)", poke.fullName(), poke.number);
-            log.println();
+            if (i < romHandler.getPokemon().size()) {
+                Pokemon poke = romHandler.getPokemon().get(i);
+                log.printf("%s (%s)", poke.fullName(), poke.number);
+                log.println();
+            }
+
         }
     }
 
