@@ -3687,18 +3687,6 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
         }
     }
 
-    @Override
-    public BufferedImage getPokemonImage(int pkIndex) {
-        try {
-            GARCArchive pokespritesGARC = this.readGARC(romEntry.getFile("PokemonGraphics"), false);
-            byte[] iconBytes = pokespritesGARC.files.get(pkIndex).get(0);
-            BFLIM icon = new BFLIM(iconBytes);
-            return icon.getImage();
-        } catch (IOException e) {
-            throw new RandomizerIOException(e);
-        }
-    }
-
     private class ZoneData {
         public int worldIndex;
         public int areaIndex;

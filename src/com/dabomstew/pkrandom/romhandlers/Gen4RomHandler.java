@@ -5760,67 +5760,6 @@ public class Gen4RomHandler extends AbstractDSRomHandler {
     }
 
     @Override
-    public BufferedImage getPokemonImage(int pkIndex) {
-        try {
-            Pokemon pk = pokemonList.get(pkIndex);
-            NARCArchive pokespritesNARC = this.readNARC(romEntry.getFile("PokemonGraphics"));
-            int spriteIndex = pk.number * 6 + 2 + random.nextInt(2);
-            int palIndex = pk.number * 6 + 4;
-            if (random.nextInt(10) == 0) {
-                // shiny
-                palIndex++;
-            }
-
-            // read sprite
-            byte[] rawSprite = pokespritesNARC.files.get(spriteIndex);
-            if (rawSprite.length == 0) {
-                // Must use other gender form
-                rawSprite = pokespritesNARC.files.get(spriteIndex ^ 1);
-            }
-            int[] spriteData = new int[3200];
-            for (int i = 0; i < 3200; i++) {
-                spriteData[i] = readWord(rawSprite, i * 2 + 48);
-            }
-
-            // Decrypt sprite (why does EVERYTHING use the RNG formula geez)
-            if (romEntry.romType != Gen4Constants.Type_DP) {
-                int key = spriteData[0];
-                for (int i = 0; i < 3200; i++) {
-                    spriteData[i] ^= (key & 0xFFFF);
-                    key = key * 0x41C64E6D + 0x6073;
-                }
-            } else {
-                // D/P sprites are encrypted *backwards*. Wut.
-                int key = spriteData[3199];
-                for (int i = 3199; i >= 0; i--) {
-                    spriteData[i] ^= (key & 0xFFFF);
-                    key = key * 0x41C64E6D + 0x6073;
-                }
-            }
-
-            byte[] rawPalette = pokespritesNARC.files.get(palIndex);
-
-            int[] palette = new int[16];
-            for (int i = 1; i < 16; i++) {
-                palette[i] = GFXFunctions.conv16BitColorToARGB(readWord(rawPalette, 40 + i * 2));
-            }
-
-            // Deliberately chop off the right half of the image while still
-            // correctly indexing the array.
-            BufferedImage bim = new BufferedImage(80, 80, BufferedImage.TYPE_INT_ARGB);
-            for (int y = 0; y < 80; y++) {
-                for (int x = 0; x < 80; x++) {
-                    int value = ((spriteData[y * 40 + x / 4]) >> (x % 4) * 4) & 0x0F;
-                    bim.setRGB(x, y, palette[value]);
-                }
-            }
-            return bim;
-        } catch (IOException e) {
-            throw new RandomizerIOException(e);
-        }
-    }
-
-    @Override
     public List<Integer> getAllConsumableHeldItems() {
         return Gen4Constants.consumableHeldItems;
     }

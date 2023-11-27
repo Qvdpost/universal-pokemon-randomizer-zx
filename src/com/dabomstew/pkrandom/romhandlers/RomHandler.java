@@ -631,8 +631,6 @@ public interface RomHandler {
 
     BufferedImage getMascotImage();
 
-    BufferedImage getPokemonImage(int pkIndex);
-
     int generationOfPokemon();
 
     void writeCheckValueToROM(int value);
