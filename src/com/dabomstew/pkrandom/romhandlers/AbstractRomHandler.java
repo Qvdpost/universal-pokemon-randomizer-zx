@@ -185,6 +185,10 @@ public abstract class AbstractRomHandler implements RomHandler {
         }
     }
 
+    public List<Pokemon> getPokemonPool() {
+        return Collections.unmodifiableList(mainPokemonList);
+    }
+
     private void addPokesFromRange(List<Pokemon> pokemonPool, List<Pokemon> allPokemon, int range_min, int range_max) {
         for (int i = range_min; i <= range_max; i++) {
             if (!pokemonPool.contains(allPokemon.get(i))) {

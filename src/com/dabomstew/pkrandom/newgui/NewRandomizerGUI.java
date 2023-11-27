@@ -833,6 +833,11 @@ public class NewRandomizerGUI {
             JOptionPane.showMessageDialog(frame, bundle.getString("GUI.pokeLimitNotChosen"));
             return;
         }
+        if (limitPokemonCheckBox.isSelected() && this.currentRestrictions.ban_pokemon) {
+            if (!verifySafeBannedPokemon()) {
+                JOptionPane.showMessageDialog(frame, bundle.getString("GUI.unsafeBannedPokemon"));
+            }
+        }
         SaveType outputType = askForSaveType();
         romSaveChooser.setSelectedFile(null);
         boolean allowed = false;
@@ -3857,10 +3862,11 @@ public class NewRandomizerGUI {
     }
 
     private void checkBannedPokemon() {
+        BannedPokemonSet bannedPokemon;
         try {
             File currentFile = new File(SysConstants.ROOT_PATH + SysConstants.bannedPokemonFile);
             if (currentFile.exists()) {
-                BannedPokemonSet bannedPokemon = FileFunctions.getBannedPokemon();
+                bannedPokemon = FileFunctions.getBannedPokemon();
             }
         } catch (IOException e) {
             JOptionPane.showMessageDialog(frame, bundle.getString("GUI.invalidBannedPokemon"));
@@ -3868,6 +3874,19 @@ public class NewRandomizerGUI {
         }
 
         haveCheckedBannedPokemon = true;
+    }
+
+    private boolean verifySafeBannedPokemon() {
+        try {
+            romHandler.setPokemonPool(getCurrentSettings());
+
+            if (romHandler.getPokemonPool().size() < 20) {
+                return false;
+            }
+        } catch (IOException e) {
+            return true;
+        }
+        return true;
     }
 
     private void attemptReadConfig() {
