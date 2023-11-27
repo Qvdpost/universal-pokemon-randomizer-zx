@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.nio.Buffer;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class BannedPokemonEditorDialog extends javax.swing.JDialog {
 
@@ -139,15 +140,14 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
     }// GEN-LAST:event_closeBtnActionPerformed
 
     private boolean save() {
-        BannedPokemonSet bnd = new BannedPokemonSet();
         try {
-            bnd.setBannedPokemon(getPokemonList(bannedPokemonText));
+            bannedPokemon.setBannedPokemon(getPokemonList(bannedPokemonText));
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Banned Pokemon are only allowed as numeric Pokedex ID's.");
             return false;
         }
         try {
-            byte[] data = bnd.getBytes();
+            byte[] data = bannedPokemon.getBytes();
             FileFunctions.writeBytesToFile(SysConstants.ROOT_PATH + SysConstants.bannedPokemonFile, data);
             pendingChanges = false;
             JOptionPane.showMessageDialog(this, "Banned Pokemon saved.");
@@ -196,7 +196,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         textArea.setText("");
         StringBuilder sb = new StringBuilder();
         boolean first = true;
-        for (Integer uid : pokemon) {
+        for (Integer uid : pokemon.stream().sorted().collect(Collectors.toList())) {
             if (!first) {
                 sb.append(SysConstants.LINE_SEP);
             }
@@ -271,7 +271,9 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         return false;
     }
 
-    private void banPokemon(Pokemon poke) { bannedPokemon.addBannedPokemon(poke.number); }
+    private void banPokemon(Pokemon poke) {
+        bannedPokemon.addBannedPokemon(poke.number);
+    }
     private void unbanPokemon(Pokemon poke) {
         bannedPokemon.removeBannedPokemon(poke.number);
     }
@@ -385,7 +387,6 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
             return;
         }
         pokemonIconLabel.setIcon(getPokemonIcon(pokemonIconLabel, ((ComboItem)selectPokeCB.getSelectedItem()).getValue()));
-//        pokemonIconLabel.setIcon(makePokemonIcon(pokemonIconLabel, romHandler.getPokemonImage(selectPokeCB.getSelectedIndex())));
     }
 
     private void banRandomTypeAction() {
