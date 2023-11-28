@@ -64,7 +64,7 @@ public class BannedPokemonSet {
             throw new IOException("Invalid size specified.");
         }
 
-        // Read the block and translate it into a list of names.
+        // Read the block and translate it into a list of ID's.
         byte[] idData = FileFunctions.readFullyIntoBuffer(in, size);
         List<Integer> ids = new ArrayList<>();
         Scanner sc = new Scanner(new ByteArrayInputStream(idData), "UTF-8");
@@ -118,6 +118,10 @@ public class BannedPokemonSet {
 
     public void addBannedPokemon(Integer pokemon) {
         bannedPokemon.add(pokemon);
+    }
+
+    public void addBannedPokemon(List<Integer> pokemon) {
+        bannedPokemon.addAll(pokemon);
     }
 
     public void removeBannedPokemon(Integer pokemon) { bannedPokemon.remove(pokemon); }

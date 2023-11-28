@@ -835,7 +835,10 @@ public class NewRandomizerGUI {
         }
         if (limitPokemonCheckBox.isSelected() && this.currentRestrictions.ban_pokemon) {
             if (!verifySafeBannedPokemon()) {
-                JOptionPane.showMessageDialog(frame, bundle.getString("GUI.unsafeBannedPokemon"));
+                int result = JOptionPane.showConfirmDialog(frame, bundle.getString("GUI.unsafeBannedPokemon"));
+                if (result == JOptionPane.NO_OPTION) {
+                    return;
+                }
             }
         }
         SaveType outputType = askForSaveType();

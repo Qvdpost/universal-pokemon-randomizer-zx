@@ -1,9 +1,13 @@
-package com.dabomstew.pkrandom;
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.dabomstew.pkrandom.newgui;
 
 /*----------------------------------------------------------------------------*/
-/*--  SysConstants.java - contains constants not related to the             --*/
-/*--                      randomization process itself, such as those       --*/
-/*--                      relating to file I/O and the updating system.     --*/
+/*--  BannedPokemonFileFilter.java - a file filter for the banned Pokemon   --*/
+/*--                          which allows selected Dex ID's to be excluded --*/
+/*--                          from the randomizer.                          --*/
 /*--                                                                        --*/
 /*--  Part of "Universal Pokemon Randomizer ZX" by the UPR-ZX team          --*/
 /*--  Originally part of "Universal Pokemon Randomizer" by Dabomstew        --*/
@@ -26,33 +30,28 @@ package com.dabomstew.pkrandom;
 /*--  along with this program. If not, see <http://www.gnu.org/licenses/>.  --*/
 /*----------------------------------------------------------------------------*/
 
+import javax.swing.filechooser.FileFilter;
 import java.io.File;
 
-public class SysConstants {
+public class BannedPokemonFileFilter extends FileFilter {
 
-    public static final String AUTOUPDATE_URL = "http://pokehacks.dabomstew.com/randomizer/autoupdate/";
-    public static final String WEBSITE_URL = "http://pokehacks.dabomstew.com/randomizer/";
-    public static final String WEBSITE_URL_ZX = "https://github.com/Ajarmar/universal-pokemon-randomizer-zx/releases";
-    public static final String WIKI_URL_ZX = "https://github.com/Ajarmar/universal-pokemon-randomizer-zx/wiki";
-    public static final String API_URL_ZX = "https://api.github.com/repos/ajarmar/universal-pokemon-randomizer-zx/releases/latest";
-    public static final int UPDATE_VERSION = 1721;
-    public static final String ROOT_PATH = getRootPath();
-    public static final String LINE_SEP = System.getProperty("line.separator");
-    public static final String customNamesFile = "customnames.rncn";
-    public static final String bannedPokemonFile = "bannedpokemon.rnbp";
-
-    // OLD custom names files
-    public static final String tnamesFile = "trainernames.txt";
-    public static final String tclassesFile = "trainerclasses.txt";
-    public static final String nnamesFile = "nicknames.txt";
-
-    private static String getRootPath() {
-        try {
-            File fh = Utils.getExecutionLocation().getParentFile();
-            return fh.getAbsolutePath() + File.separator;
-        } catch (Exception e) {
-            return "./";
+    @Override
+    public boolean accept(File arg0) {
+        if (arg0.isDirectory()) {
+            return true; // needed to allow directory navigation
         }
+        String filename = arg0.getName();
+        if (!filename.contains(".")) {
+            return false;
+        }
+        String extension = arg0.getName().substring(
+                arg0.getName().lastIndexOf('.') + 1);
+        return extension.toLowerCase().equals("rnbp");
+    }
+
+    @Override
+    public String getDescription() {
+        return "Banned Pokemon File (*.rnbp)";
     }
 
 }
