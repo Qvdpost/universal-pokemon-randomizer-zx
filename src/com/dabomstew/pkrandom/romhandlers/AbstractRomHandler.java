@@ -4278,6 +4278,7 @@ public abstract class AbstractRomHandler implements RomHandler {
             for (StaticEncounter old : currentStaticPokemon) {
                 if (settings.isOnlyRandomizeBannedStatic() && !bannedPokemon.contains(old.pkmn)) {
                     legendariesLeft.remove(old.pkmn);
+                    setPokemonAndFormeForStaticEncounter(old, old.pkmn);
                     replacements.add(old);
                     continue;
                 }
@@ -4347,6 +4348,7 @@ public abstract class AbstractRomHandler implements RomHandler {
             for (StaticEncounter old : currentStaticPokemon) {
                 if (settings.isOnlyRandomizeBannedStatic() && !bannedPokemon.contains(old.pkmn)) {
                     pokemonLeft.remove(old.pkmn);
+                    setPokemonAndFormeForStaticEncounter(old, old.pkmn);
                     replacements.add(old);
                     continue;
                 }
@@ -4447,6 +4449,7 @@ public abstract class AbstractRomHandler implements RomHandler {
             for (StaticEncounter old : currentStaticPokemon) {
                 if (settings.isOnlyRandomizeBannedStatic() && !bannedPokemon.contains(old.pkmn)) {
                     pokemonLeft.remove(old.pkmn);
+                    setPokemonAndFormeForStaticEncounter(old, old.pkmn);
                     replacements.add(old);
                     continue;
                 }
