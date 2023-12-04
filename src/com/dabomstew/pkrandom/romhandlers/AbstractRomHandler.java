@@ -764,6 +764,9 @@ public abstract class AbstractRomHandler implements RomHandler {
         if (banIrregularAltFormes) {
             banned.addAll(getIrregularFormes());
         }
+
+        BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
+
         // Assume EITHER catch em all OR type themed OR match strength for now
         if (catchEmAll) {
             List<Pokemon> allPokes;
@@ -792,6 +795,10 @@ public abstract class AbstractRomHandler implements RomHandler {
                     // unless it
                     // randomly appears as a static or unless it becomes a random evolution.
                     if (banned.contains(enc.pokemon)) {
+                        continue;
+                    }
+                    if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
+                        pickablePokemon.remove(enc.pokemon);
                         continue;
                     }
 
@@ -872,6 +879,9 @@ public abstract class AbstractRomHandler implements RomHandler {
                     throw new RandomizationException("Could not randomize an area in a reasonable amount of attempts.");
                 }
                 for (Encounter enc : area.encounters) {
+                    if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
+                        continue;
+                    }
                     // Pick a random themed pokemon
                     enc.pokemon = possiblePokemon.get(this.random.nextInt(possiblePokemon.size()));
                     while (enc.pokemon.actuallyCosmetic) {
@@ -897,6 +907,9 @@ public abstract class AbstractRomHandler implements RomHandler {
                     localAllowed.removeAll(area.bannedPokemon);
                 }
                 for (Encounter enc : area.encounters) {
+                    if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
+                        continue;
+                    }
                     if (balanceShakingGrass) {
                         if (area.displayName.contains("Shaking")) {
                             enc.pokemon = pickWildPowerLvlReplacement(localAllowed, enc.pokemon, false, null,
@@ -926,6 +939,9 @@ public abstract class AbstractRomHandler implements RomHandler {
             // Entirely random
             for (EncounterSet area : scrambledEncounters) {
                 for (Encounter enc : area.encounters) {
+                    if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
+                        continue;
+                    }
                     enc.pokemon = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
                     setFormeForEncounter(enc, enc.pokemon);
                 }
@@ -982,6 +998,8 @@ public abstract class AbstractRomHandler implements RomHandler {
             banned.addAll(getIrregularFormes());
         }
 
+        BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
+
         // New: randomize the order encounter sets are randomized in.
         // Leads to less predictable results for various modifiers.
         // Need to keep the original ordering around for saving though.
@@ -1012,6 +1030,10 @@ public abstract class AbstractRomHandler implements RomHandler {
                     pickablePokemon.removeAll(area.bannedPokemon);
                 }
                 for (Pokemon areaPk : inArea) {
+                    if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(areaPk)) {
+                        areaMap.put(areaPk, areaPk);
+                        continue;
+                    }
                     if (pickablePokemon.size() == 0) {
                         // No more pickable pokes left, take a random one
                         List<Pokemon> tempPickable;
@@ -1103,6 +1125,10 @@ public abstract class AbstractRomHandler implements RomHandler {
                 // Build area map using type theme.
                 Map<Pokemon, Pokemon> areaMap = new TreeMap<>();
                 for (Pokemon areaPk : inArea) {
+                    if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(areaPk)) {
+                        areaMap.put(areaPk, areaPk);
+                        continue;
+                    }
                     int picked = this.random.nextInt(possiblePokemon.size());
                     Pokemon pickedMN = possiblePokemon.get(picked);
                     while (pickedMN.actuallyCosmetic) {
@@ -1140,6 +1166,10 @@ public abstract class AbstractRomHandler implements RomHandler {
                     localAllowed.removeAll(area.bannedPokemon);
                 }
                 for (Pokemon areaPk : inArea) {
+                    if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(areaPk)) {
+                        areaMap.put(areaPk, areaPk);
+                        continue;
+                    }
                     Pokemon picked = pickWildPowerLvlReplacement(localAllowed, areaPk, false, usedPks, 100);
                     while (picked.actuallyCosmetic) {
                         picked = pickWildPowerLvlReplacement(localAllowed, areaPk, false, usedPks, 100);
@@ -1161,6 +1191,10 @@ public abstract class AbstractRomHandler implements RomHandler {
                 // Build area map using randoms
                 Map<Pokemon, Pokemon> areaMap = new TreeMap<>();
                 for (Pokemon areaPk : inArea) {
+                    if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(areaPk)) {
+                        areaMap.put(areaPk, areaPk);
+                        continue;
+                    }
                     Pokemon picked = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
                     while (areaMap.containsValue(picked)) {
                         picked = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
@@ -1196,6 +1230,8 @@ public abstract class AbstractRomHandler implements RomHandler {
         boolean banIrregularAltFormes = settings.isBanIrregularAltFormes();
         boolean abilitiesAreRandomized = settings.getAbilitiesMod() == Settings.AbilitiesMod.RANDOMIZE;
 
+        BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
+
         checkPokemonRestrictions();
         // Build the full 1-to-1 map
         Map<Pokemon, Pokemon> translateMap = new TreeMap<>();
@@ -1229,6 +1265,11 @@ public abstract class AbstractRomHandler implements RomHandler {
             if (usePowerLevels) {
                 int pickedLeft = this.random.nextInt(remainingLeft.size());
                 Pokemon pickedLeftP = remainingLeft.remove(pickedLeft);
+                if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(pickedLeftP)) {
+                    translateMap.put(pickedLeftP, pickedLeftP);
+                    remainingRight.remove(pickedLeftP);
+                    continue;
+                }
                 Pokemon pickedRightP;
                 if (remainingRight.size() == 1) {
                     // pick this (it may or may not be the same poke)
@@ -1243,6 +1284,11 @@ public abstract class AbstractRomHandler implements RomHandler {
                 int pickedLeft = this.random.nextInt(remainingLeft.size());
                 int pickedRight = this.random.nextInt(remainingRight.size());
                 Pokemon pickedLeftP = remainingLeft.remove(pickedLeft);
+                if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(pickedLeftP)) {
+                    translateMap.put(pickedLeftP, pickedLeftP);
+                    remainingRight.remove(pickedLeftP);
+                    continue;
+                }
                 Pokemon pickedRightP = remainingRight.get(pickedRight);
                 while (pickedLeftP.number == pickedRightP.number && remainingRight.size() != 1) {
                     // Reroll for a different pokemon if at all possible
@@ -1345,6 +1391,8 @@ public abstract class AbstractRomHandler implements RomHandler {
         boolean banIrregularAltFormes = settings.isBanIrregularAltFormes();
         boolean abilitiesAreRandomized = settings.getAbilitiesMod() == Settings.AbilitiesMod.RANDOMIZE;
 
+        BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
+
         List<Pokemon> banned = this.bannedForWildEncounters();
         if (!abilitiesAreRandomized) {
             List<Pokemon> abilityDependentFormes = getAbilityDependentFormes();
@@ -1368,6 +1416,9 @@ public abstract class AbstractRomHandler implements RomHandler {
                         for (Encounter enc : area.encounters) {
                             boolean shouldRandomize = doesAnotherEncounterWithSamePokemonExistInArea(enc, area);
                             if (shouldRandomize) {
+                                if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
+                                    continue;
+                                }
                                 enc.pokemon = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
                                 setFormeForEncounter(enc, enc.pokemon);
                             }
@@ -1399,6 +1450,9 @@ public abstract class AbstractRomHandler implements RomHandler {
                                     "Could not randomize an area in a reasonable amount of attempts.");
                         }
                         for (Encounter enc : area.encounters) {
+                            if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
+                                continue;
+                            }
                             // Pick a random themed pokemon
                             enc.pokemon = possiblePokemon.get(this.random.nextInt(possiblePokemon.size()));
                             while (enc.pokemon.actuallyCosmetic) {
@@ -1422,6 +1476,9 @@ public abstract class AbstractRomHandler implements RomHandler {
                             localAllowed.removeAll(area.bannedPokemon);
                         }
                         for (Encounter enc : area.encounters) {
+                            if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
+                                continue;
+                            }
                             enc.pokemon = pickWildPowerLvlReplacement(localAllowed, enc.pokemon, false, null, 100);
                             while (enc.pokemon.actuallyCosmetic) {
                                 enc.pokemon = pickWildPowerLvlReplacement(localAllowed, enc.pokemon, false, null, 100);
@@ -1431,6 +1488,9 @@ public abstract class AbstractRomHandler implements RomHandler {
                     } else {
                         // Entirely random
                         for (Encounter enc : area.encounters) {
+                            if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
+                                continue;
+                            }
                             enc.pokemon = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
                             setFormeForEncounter(enc, enc.pokemon);
                         }
@@ -1457,6 +1517,11 @@ public abstract class AbstractRomHandler implements RomHandler {
                 int randomEncounterIndex = encounterIndices.get(indexInListOfEncounterIndices);
                 EncounterSet area = nonRockSmashAreas.get(areaIndex);
                 Encounter enc = area.encounters.get(randomEncounterIndex);
+
+                if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
+                    continue;
+                }
+
                 // Assume EITHER catch em all OR type themed OR match strength for now
                 if (catchEmAll) {
                     boolean shouldRandomize = doesAnotherEncounterWithSamePokemonExistInArea(enc, area);
@@ -1734,6 +1799,8 @@ public abstract class AbstractRomHandler implements RomHandler {
 
         checkPokemonRestrictions();
 
+        BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
+
         // Set up Pokemon pool
         cachedReplacementLists = new TreeMap<>();
         cachedAllList = noLegendaries ? new ArrayList<>(noLegendaryList)
@@ -1938,6 +2005,9 @@ public abstract class AbstractRomHandler implements RomHandler {
                     oldPK = getAltFormeOfPokemon(oldPK, tp.forme);
                 }
 
+                if (settings.isOnlyRandomizeBannedTrainer() && !bannedPokemon.contains(oldPK)) {
+                    continue;
+                }
                 bannedList = new ArrayList<>();
                 bannedList.addAll(usedAsUniqueList);
                 if (illegalEvoChains && willForceEvolve) {
@@ -4162,6 +4232,7 @@ public abstract class AbstractRomHandler implements RomHandler {
         List<StaticEncounter> replacements = new ArrayList<>();
         List<Pokemon> banned = this.bannedForStaticPokemon();
         banned.addAll(this.getBannedFormesForPlayerPokemon());
+        BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
         if (!abilitiesAreRandomized) {
             List<Pokemon> abilityDependentFormes = getAbilityDependentFormes();
             banned.addAll(abilityDependentFormes);
@@ -4205,6 +4276,11 @@ public abstract class AbstractRomHandler implements RomHandler {
             List<Pokemon> ultraBeastsPool = new ArrayList<>(ultraBeastsLeft);
 
             for (StaticEncounter old : currentStaticPokemon) {
+                if (settings.isOnlyRandomizeBannedStatic() && !bannedPokemon.contains(old.pkmn)) {
+                    legendariesLeft.remove(old.pkmn);
+                    replacements.add(old);
+                    continue;
+                }
                 StaticEncounter newStatic = cloneStaticEncounter(old);
                 Pokemon newPK;
                 if (old.pkmn.isLegendary()) {
@@ -4269,6 +4345,11 @@ public abstract class AbstractRomHandler implements RomHandler {
 
             List<Integer> mainGameLegendaries = getMainGameLegendaries();
             for (StaticEncounter old : currentStaticPokemon) {
+                if (settings.isOnlyRandomizeBannedStatic() && !bannedPokemon.contains(old.pkmn)) {
+                    pokemonLeft.remove(old.pkmn);
+                    replacements.add(old);
+                    continue;
+                }
                 StaticEncounter newStatic = cloneStaticEncounter(old);
                 Pokemon newPK;
                 Pokemon oldPK = old.pkmn;
@@ -4364,6 +4445,11 @@ public abstract class AbstractRomHandler implements RomHandler {
             List<Pokemon> pokemonPool = new ArrayList<>(pokemonLeft);
 
             for (StaticEncounter old : currentStaticPokemon) {
+                if (settings.isOnlyRandomizeBannedStatic() && !bannedPokemon.contains(old.pkmn)) {
+                    pokemonLeft.remove(old.pkmn);
+                    replacements.add(old);
+                    continue;
+                }
                 StaticEncounter newStatic = cloneStaticEncounter(old);
                 Pokemon newPK;
                 if (reallySwapMegaEvos && old.canMegaEvolve()) {
@@ -5405,6 +5491,8 @@ public abstract class AbstractRomHandler implements RomHandler {
         boolean randomItem = settings.isRandomizeInGameTradesItems();
         CustomNamesSet customNames = settings.getCustomNames();
 
+        BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
+
         checkPokemonRestrictions();
         // Process trainer names
         List<String> trainerNames = new ArrayList<>();
@@ -5444,6 +5532,9 @@ public abstract class AbstractRomHandler implements RomHandler {
         int trnameCount = trainerNames.size();
 
         for (IngameTrade trade : trades) {
+            if (settings.isOnlyRandomizeBannedTrades() && !bannedPokemon.contains(trade.givenPokemon)) {
+                continue;
+            }
             // pick new given pokemon
             Pokemon oldgiven = trade.givenPokemon;
             Pokemon given = this.randomPokemon();
@@ -5463,6 +5554,9 @@ public abstract class AbstractRomHandler implements RomHandler {
                 trade.requestedPokemon = given;
             } else if (randomizeRequest) {
                 if (trade.requestedPokemon != null) {
+                    if (settings.isOnlyRandomizeBannedTrades() && !bannedPokemon.contains(trade.requestedPokemon)) {
+                        continue;
+                    }
                     Pokemon request = this.randomPokemon();
                     int innerTries = 0;
                     while (innerTries < 1000 && (usedRequests.contains(request) || request == given)) {
@@ -7028,6 +7122,10 @@ public abstract class AbstractRomHandler implements RomHandler {
         withoutBannedPokemon = pickFrom.stream().filter(pk -> !bannedList.contains(pk)).collect(Collectors.toList());
         if (!withoutBannedPokemon.isEmpty()) {
             pickFrom = withoutBannedPokemon;
+        }
+
+        if (pickFrom.isEmpty()) {
+            pickFrom = cachedAllList;
         }
 
         if (usePowerLevels) {

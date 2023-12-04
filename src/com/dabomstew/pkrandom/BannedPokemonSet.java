@@ -131,4 +131,12 @@ public class BannedPokemonSet {
         bannedPokemon.addAll(pokemon);
     }
 
+    public boolean contains(Pokemon pokemon) {
+        return bannedPokemon.contains(pokemon.number);
+    }
+
+    public boolean contains(Integer pokemon) {
+        return bannedPokemon.contains(pokemon);
+    }
+
 }

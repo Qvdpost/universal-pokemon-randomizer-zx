@@ -105,7 +105,7 @@ public class NewGenerationLimitDialog extends javax.swing.JDialog {
         allowEvolutionaryRelativesCheckBox.setEnabled(false);
         allowEvolutionaryRelativesCheckBox.setSelected(false);
 
-        banPokemonCheckBox.setEnabled(true);
+        banPokemonCheckBox.setEnabled(false);
         banPokemonCheckBox.setSelected(false);
     }
 
@@ -159,9 +159,12 @@ public class NewGenerationLimitDialog extends javax.swing.JDialog {
                 gen4CheckBox.isSelected() || gen5CheckBox.isSelected() || gen6CheckBox.isSelected() ||
                 gen7CheckBox.isSelected()) {
             allowEvolutionaryRelativesCheckBox.setEnabled(true);
+            banPokemonCheckBox.setEnabled(true);
         } else {
             allowEvolutionaryRelativesCheckBox.setEnabled(false);
             allowEvolutionaryRelativesCheckBox.setSelected(false);
+            banPokemonCheckBox.setEnabled(false);
+            banPokemonCheckBox.setSelected(false);
         }
     }
 
