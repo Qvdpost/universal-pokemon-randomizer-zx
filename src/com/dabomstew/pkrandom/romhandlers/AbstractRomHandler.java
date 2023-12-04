@@ -28,6 +28,7 @@ package com.dabomstew.pkrandom.romhandlers;
 /*--  along with this program. If not, see <http://www.gnu.org/licenses/>.  --*/
 /*----------------------------------------------------------------------------*/
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -417,6 +418,12 @@ public abstract class AbstractRomHandler implements RomHandler {
                     }
                 }
             }
+            twoEvoPokes = twoEvoPokes.stream()
+                    .distinct()
+                    .filter(mainPokemonList::contains).collect(Collectors.toList());
+        }
+        if (twoEvoPokes.isEmpty()) {
+            return randomPokemon();
         }
         return twoEvoPokes.get(this.random.nextInt(twoEvoPokes.size()));
     }
@@ -4053,8 +4060,12 @@ public abstract class AbstractRomHandler implements RomHandler {
             }
             if (starterCount() > 3) {
                 for (int i = 3; i < starterCount(); i++) {
+                    int tries = 0;
                     Pokemon pkmn = random2EvosPokemon(allowAltFormes);
-                    while (pickedStarters.contains(pkmn)) {
+                    while (tries < 1000 && (pickedStarters.contains(pkmn) || banned.contains(pkmn))) {
+                        if (settings.getCurrentRestrictions().ban_pokemon) {
+                            tries++;
+                        }
                         pkmn = random2EvosPokemon(allowAltFormes);
                     }
                     pickedStarters.add(pkmn);
@@ -4083,8 +4094,12 @@ public abstract class AbstractRomHandler implements RomHandler {
             banned.addAll(getIrregularFormes());
         }
         for (int i = 0; i < starterCount; i++) {
+            int tries = 0;
             Pokemon pkmn = allowAltFormes ? randomPokemonInclFormes() : randomPokemon();
-            while (pickedStarters.contains(pkmn) || banned.contains(pkmn) || pkmn.actuallyCosmetic) {
+            while (tries < 1000 && (pickedStarters.contains(pkmn) || banned.contains(pkmn) || pkmn.actuallyCosmetic)) {
+                if (settings.getCurrentRestrictions().ban_pokemon) {
+                    tries++;
+                }
                 pkmn = allowAltFormes ? randomPokemonInclFormes() : randomPokemon();
             }
             pickedStarters.add(pkmn);
@@ -4108,9 +4123,14 @@ public abstract class AbstractRomHandler implements RomHandler {
         if (banIrregularAltFormes) {
             banned.addAll(getIrregularFormes());
         }
+
         for (int i = 0; i < starterCount; i++) {
+            int tries = 0;
             Pokemon pkmn = random2EvosPokemon(allowAltFormes);
-            while (pickedStarters.contains(pkmn) || banned.contains(pkmn)) {
+            while (tries < 1000 && (pickedStarters.contains(pkmn) || banned.contains(pkmn))) {
+                if (settings.getCurrentRestrictions().ban_pokemon) {
+                    tries++;
+                }
                 pkmn = random2EvosPokemon(allowAltFormes);
             }
             pickedStarters.add(pkmn);
@@ -5427,7 +5447,11 @@ public abstract class AbstractRomHandler implements RomHandler {
             // pick new given pokemon
             Pokemon oldgiven = trade.givenPokemon;
             Pokemon given = this.randomPokemon();
-            while (usedGivens.contains(given)) {
+            int tries = 0;
+            while (usedGivens.contains(given) && tries < 1000) {
+                if (settings.getCurrentRestrictions().ban_pokemon) {
+                    tries++;
+                }
                 given = this.randomPokemon();
             }
             usedGivens.add(given);
@@ -5440,7 +5464,11 @@ public abstract class AbstractRomHandler implements RomHandler {
             } else if (randomizeRequest) {
                 if (trade.requestedPokemon != null) {
                     Pokemon request = this.randomPokemon();
-                    while (usedRequests.contains(request) || request == given) {
+                    int innerTries = 0;
+                    while (innerTries < 1000 && (usedRequests.contains(request) || request == given)) {
+                        if (settings.getCurrentRestrictions().ban_pokemon) {
+                            innerTries++;
+                        }
                         request = this.randomPokemon();
                     }
                     usedRequests.add(request);
