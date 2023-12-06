@@ -845,8 +845,11 @@ public class NewRandomizerGUI {
         }
         if (limitPokemonCheckBox.isSelected() && this.currentRestrictions.ban_pokemon) {
             if (!verifySafeBannedPokemon()) {
-                int result = JOptionPane.showConfirmDialog(frame, bundle.getString("GUI.unsafeBannedPokemon"));
-                if (result == JOptionPane.NO_OPTION) {
+                int result = JOptionPane.showConfirmDialog(frame,
+                        bundle.getString("GUI.unsafeBannedPokemon") + " (Available Pokemon: " +
+                                romHandler.getPokemonPool().size() + ")",
+                        "Warning", JOptionPane.YES_NO_OPTION);
+                if (result != JOptionPane.YES_OPTION) {
                     return;
                 }
             }
@@ -3932,7 +3935,7 @@ public class NewRandomizerGUI {
         try {
             romHandler.setPokemonPool(getCurrentSettings());
 
-            if (romHandler.getPokemonPool().size() < 20) {
+            if (romHandler.getPokemonPool().size() < 50) {
                 return false;
             }
         } catch (IOException e) {

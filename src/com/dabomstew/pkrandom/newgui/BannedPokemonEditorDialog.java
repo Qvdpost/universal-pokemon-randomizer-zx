@@ -726,7 +726,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         ComboItem[] pokemon = new ComboItem[allPokemon.size()];
         for (Pokemon poke : allPokemon) {
             if (poke != null) {
-                pokemon[poke.number] = new ComboItem(poke.number, poke.name);
+                pokemon[poke.number] = new ComboItem(poke.number, poke.name + " (" + poke.number + ")");
             }
         }
 
