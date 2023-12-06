@@ -29,7 +29,7 @@ import java.util.Map;
 
 public class Version {
     public static final int VERSION = 322; // Increment by 1 for new version. Updated for 4.6.0.
-    public static final String VERSION_STRING = "4.6.1-alpha";
+    public static final String VERSION_STRING = "4.6.1-dev";
 
     public static final Map<Integer,String> oldVersions = setupVersionsMap();
 
