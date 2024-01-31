@@ -33,6 +33,7 @@ import java.util.Random;
 import java.util.Set;
 
 import com.dabomstew.pkrandom.MiscTweak;
+import com.dabomstew.pkrandom.PokemonPool;
 import com.dabomstew.pkrandom.Settings;
 import com.dabomstew.pkrandom.pokemon.*;
 
@@ -106,7 +107,7 @@ public interface RomHandler {
 
     void setPokemonPool(Settings settings);
 
-    List<Pokemon> getPokemonPool();
+    PokemonPool getPokemonPool();
 
     void removeEvosForPokemonPool();
 

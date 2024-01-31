@@ -208,6 +208,7 @@ public class Settings {
     private boolean onlyRandomizeBannedStatic = false;
     private boolean onlyRandomizeBannedTrades = false;
     private boolean onlyRandomizeBannedTrainer = false;
+    private boolean noBanRandomizeTrainer = false;
     private boolean useMinimumCatchRate;
     private int minimumCatchRateLevel = 1;
     private boolean randomizeWildPokemonHeldItems;
@@ -589,7 +590,7 @@ public class Settings {
 
         // 51 Banlist Only Randomization
         out.write(makeByteSelected(onlyRandomizeBannedWild, onlyRandomizeBannedStatic,
-                onlyRandomizeBannedTrades, onlyRandomizeBannedTrainer)
+                onlyRandomizeBannedTrades, onlyRandomizeBannedTrainer, noBanRandomizeTrainer)
         );
 
         try {
@@ -886,6 +887,7 @@ public class Settings {
         settings.setOnlyRandomizeBannedStatic(restoreState(data[51], 1));
         settings.setOnlyRandomizeBannedTrades(restoreState(data[51], 2));
         settings.setOnlyRandomizeBannedTrainer(restoreState(data[51], 3));
+        settings.setNoBanRandomizeTrainer(restoreState(data[51], 4));
 
 
         int romNameLength = data[LENGTH_OF_SETTINGS_DATA] & 0xFF;
@@ -1842,6 +1844,10 @@ public class Settings {
         return currentRestrictions != null && currentRestrictions.ban_pokemon && onlyRandomizeBannedTrainer;
     }
 
+    public boolean isNoBanRandomizeTrainer() {
+        return currentRestrictions != null && currentRestrictions.ban_pokemon && noBanRandomizeTrainer;
+    }
+
     public void setBlockWildLegendaries(boolean blockWildLegendaries) {
         this.blockWildLegendaries = blockWildLegendaries;
     }
@@ -1860,6 +1866,10 @@ public class Settings {
 
     public void setOnlyRandomizeBannedTrainer(boolean onlyRandomizeBanned) {
         this.onlyRandomizeBannedTrainer = onlyRandomizeBanned;
+    }
+
+    public void setNoBanRandomizeTrainer(boolean noBanRandomize) {
+        this.noBanRandomizeTrainer = noBanRandomize;
     }
 
     public boolean isUseMinimumCatchRate() {

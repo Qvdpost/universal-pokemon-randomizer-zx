@@ -304,6 +304,7 @@ public class NewRandomizerGUI {
     private JCheckBox miscDisableLowHPMusicCheckBox;
     private JCheckBox igtOnlyRandomizeBannedCheckBox;
     private JCheckBox tpOnlyRandomizeBannedCheckBox;
+    private JCheckBox tpNoBanRandomizeCheckBox;
 
     private static JFrame frame;
 
@@ -533,6 +534,7 @@ public class NewRandomizerGUI {
                     stpOnlyRandomizeBannedCheckBox.setEnabled(currentRestrictions.ban_pokemon && !stpUnchangedRadioButton.isSelected());
                     igtOnlyRandomizeBannedCheckBox.setEnabled(currentRestrictions.ban_pokemon && !igtUnchangedRadioButton.isSelected());
                     tpOnlyRandomizeBannedCheckBox.setEnabled(currentRestrictions.ban_pokemon && !isTrainerSetting(0));
+                    tpNoBanRandomizeCheckBox.setEnabled(currentRestrictions.ban_pokemon && !isTrainerSetting(0));
                 }
             }
         });
@@ -847,7 +849,7 @@ public class NewRandomizerGUI {
             if (!verifySafeBannedPokemon()) {
                 int result = JOptionPane.showConfirmDialog(frame,
                         bundle.getString("GUI.unsafeBannedPokemon") + " (Available Pokemon: " +
-                                romHandler.getPokemonPool().size() + ")",
+                                romHandler.getPokemonPool().mainPokemonList.size() + ")",
                         "Warning", JOptionPane.YES_NO_OPTION);
                 if (result != JOptionPane.YES_OPTION) {
                     return;
@@ -1599,6 +1601,7 @@ public class NewRandomizerGUI {
         tpSensibleItemsCheckBox.setSelected(settings.isSensibleItemsOnlyForTrainers());
         tpHighestLevelGetsItemCheckBox.setSelected(settings.isHighestLevelGetsItemsForTrainers());
         tpOnlyRandomizeBannedCheckBox.setSelected(settings.isOnlyRandomizeBannedTrainer());
+        tpNoBanRandomizeCheckBox.setSelected(settings.isNoBanRandomizeTrainer());
 
         tpRandomShinyTrainerPokemonCheckBox.setSelected(settings.isShinyChance());
         tpBetterMovesetsCheckBox.setSelected(settings.isBetterTrainerMovesets());
@@ -1842,6 +1845,7 @@ public class NewRandomizerGUI {
         settings.setSensibleItemsOnlyForTrainers(tpSensibleItemsCheckBox.isVisible() && tpSensibleItemsCheckBox.isSelected());
         settings.setHighestLevelGetsItemsForTrainers(tpHighestLevelGetsItemCheckBox.isVisible() && tpHighestLevelGetsItemCheckBox.isSelected());
         settings.setOnlyRandomizeBannedTrainer(tpOnlyRandomizeBannedCheckBox.isEnabled() && tpOnlyRandomizeBannedCheckBox.isSelected());
+        settings.setNoBanRandomizeTrainer(tpNoBanRandomizeCheckBox.isEnabled() && tpNoBanRandomizeCheckBox.isSelected());
 
         settings.setTotemPokemonMod(totpUnchangedRadioButton.isSelected(), totpRandomRadioButton.isSelected(), totpRandomSimilarStrengthRadioButton.isSelected());
         settings.setAllyPokemonMod(totpAllyUnchangedRadioButton.isSelected(), totpAllyRandomRadioButton.isSelected(), totpAllyRandomSimilarStrengthRadioButton.isSelected());
@@ -2386,6 +2390,9 @@ public class NewRandomizerGUI {
         tpOnlyRandomizeBannedCheckBox.setVisible(true);
         tpOnlyRandomizeBannedCheckBox.setEnabled(false);
         tpOnlyRandomizeBannedCheckBox.setSelected(false);
+        tpNoBanRandomizeCheckBox.setVisible(true);
+        tpNoBanRandomizeCheckBox.setEnabled(false);
+        tpNoBanRandomizeCheckBox.setSelected(false);
 
         tpAllowAlternateFormesCheckBox.setVisible(true);
         tpAllowAlternateFormesCheckBox.setEnabled(false);
@@ -3426,6 +3433,8 @@ public class NewRandomizerGUI {
             tpEliteFourUniquePokemonCheckBox.setSelected(false);
             tpOnlyRandomizeBannedCheckBox.setEnabled(false);
             tpOnlyRandomizeBannedCheckBox.setSelected(false);
+            tpNoBanRandomizeCheckBox.setEnabled(false);
+            tpNoBanRandomizeCheckBox.setSelected(false);
         } else {
             tpSimilarStrengthCheckBox.setEnabled(true);
             tpDontUseLegendariesCheckBox.setEnabled(true);
@@ -3449,6 +3458,7 @@ public class NewRandomizerGUI {
             tpEliteFourUniquePokemonCheckBox.setEnabled(tpEliteFourUniquePokemonCheckBox.isVisible());
 
             tpOnlyRandomizeBannedCheckBox.setEnabled(limitPokemonCheckBox.isSelected() && currentRestrictions != null && currentRestrictions.ban_pokemon);
+            tpNoBanRandomizeCheckBox.setEnabled(limitPokemonCheckBox.isSelected() && currentRestrictions != null && currentRestrictions.ban_pokemon);
         }
 
         if (tpForceFullyEvolvedAtCheckBox.isSelected()) {
@@ -3935,7 +3945,7 @@ public class NewRandomizerGUI {
         try {
             romHandler.setPokemonPool(getCurrentSettings());
 
-            if (romHandler.getPokemonPool().size() < 50) {
+            if (romHandler.getPokemonPool().mainPokemonList.size() < 50) {
                 return false;
             }
         } catch (IOException e) {
