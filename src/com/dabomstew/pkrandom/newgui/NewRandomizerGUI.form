@@ -1963,6 +1963,7 @@
                     <properties>
                       <enabled value="false"/>
                       <text resource-bundle="com/dabomstew/pkrandom/newgui/Bundle" key="GUI.tpOnlyRandomizeBannedCheckBox.text"/>
+                      <toolTipText resource-bundle="com/dabomstew/pkrandom/newgui/Bundle" key="GUI.tpOnlyRandomizeBannedCheckBox.tooltip"/>
                     </properties>
                   </component>
                   <component id="4ff65" class="javax.swing.JCheckBox" binding="tpNoBanRandomizeCheckBox">
@@ -1973,6 +1974,7 @@
                     <properties>
                       <enabled value="false"/>
                       <text resource-bundle="com/dabomstew/pkrandom/newgui/Bundle" key="GUI.tpNoBanRandomizeCheckBox.text"/>
+                      <toolTipText resource-bundle="com/dabomstew/pkrandom/newgui/Bundle" key="GUI.tpNoBanRandomizeCheckBox.tooltip"/>
                     </properties>
                   </component>
                 </children>
