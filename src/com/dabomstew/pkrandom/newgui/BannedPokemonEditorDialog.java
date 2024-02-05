@@ -342,11 +342,15 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         syncBannedPokemon();
         for (int pokeID = 1; pokeID < allPokemon.size(); pokeID ++) {
             Pokemon poke = allPokemon.get(pokeID);
-            if (banByMonoType.isSelected() && poke.secondaryType == null && typeIsSelected(poke.primaryType)) {
-                unbanPokemon(poke);
+            if (banByMonoType.isSelected()) {
+                if (poke.secondaryType == null && typeIsSelected(poke.primaryType)) {
+                    unbanPokemon(poke);
+                }
             }
-            else if (banByPrimaryType.isSelected() && typeIsSelected(poke.primaryType)) {
-                unbanPokemon(poke);
+            else if (banByPrimaryType.isSelected()) {
+                if (typeIsSelected(poke.primaryType)) {
+                    unbanPokemon(poke);
+                }
             }
             else if (typeIsSelected(poke.primaryType) || (poke.secondaryType != null && typeIsSelected(poke.secondaryType))) {
                 unbanPokemon(poke);
