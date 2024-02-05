@@ -89,15 +89,6 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                     "Your banned pokemon file is for a different randomizer version or otherwise corrupt."));
         }
 
-        // dialog if there's no custom names file yet
-//        if (!new File(SysConstants.ROOT_PATH + SysConstants.bannedPokemonFile).exists()) {
-//            java.awt.EventQueue.invokeLater(() -> JOptionPane.showMessageDialog(
-//                    BannedPokemonEditorDialog.this,
-//                    String.format(
-//                            "Welcome to the banned Pokemon editor!\nThis is where you can edit the PokeDex ID's used for the option in \"Limit Pokemon\".\nThe ID's are initially empty, but you can either add Pokemon ID's (eg. '1' to ban Bulbasaur) or use the buttons on the side.\nYou can share your banned ID sets with others, too!\nJust send them the %s file created in the randomizer directory.",
-//                            SysConstants.bannedPokemonFile)));
-//        }
-
         pendingChanges = false;
 
         addDocListener(bannedPokemonText);
