@@ -28,6 +28,7 @@ package com.dabomstew.pkrandom.newgui;
 
 import com.dabomstew.pkrandom.*;
 import com.dabomstew.pkrandom.ctr.BFLIM;
+import com.dabomstew.pkrandom.pokemon.Evolution;
 import com.dabomstew.pkrandom.pokemon.MegaEvolution;
 import com.dabomstew.pkrandom.pokemon.Pokemon;
 import com.dabomstew.pkrandom.pokemon.Type;
@@ -55,6 +56,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
     private BannedPokemonSet bannedPokemon;
     private ImageIcon emptyIcon = new ImageIcon(getClass().getResource("/com/dabomstew/pkrandom/newgui/emptyIcon.png"));
     java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("com/dabomstew/pkrandom/newgui/Bundle");
+    private List<Pokemon> pokemonEvolutionLines = new ArrayList<Pokemon>();
 
 
 
@@ -72,6 +74,8 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         }
         romHandler = initRomHandler;
         allPokemon = initRomHandler.getPokemon();
+
+        setPokemonEvolutionLines();
 
         initComponents();
         setLocationRelativeTo(parent);
@@ -122,6 +126,19 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
     private void saveBtnActionPerformed() {// GEN-FIRST:event_saveBtnActionPerformed
         save();
     }// GEN-LAST:event_saveBtnActionPerformed
+
+    private void invertBtnActionPerformed() {
+        for (int pokeID = 1; pokeID < allPokemon.size(); pokeID ++) {
+            Pokemon poke = allPokemon.get(pokeID);
+            if (this.bannedPokemon.contains(poke)) {
+                unbanPokemon(poke);
+            }
+            else {
+                banPokemon(poke);
+            }
+        }
+        populatePokemon(bannedPokemonText, bannedPokemon.getBannedPokemon());
+    }
 
     private void loadBtnActionPerformed() { load(); }
 
@@ -227,6 +244,22 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         }
         textArea.setText(sb.toString());
         textArea.update(textArea.getGraphics());
+    }
+
+    private void setPokemonEvolutionLines() {
+        this.pokemonEvolutionLines = new ArrayList<Pokemon>();
+        for (int pokeID = 1; pokeID < allPokemon.size(); pokeID ++) {
+            Pokemon poke = allPokemon.get(pokeID);
+            if (poke.evolutionsTo.isEmpty()) {
+                this.pokemonEvolutionLines.add(poke);
+            }
+        }
+    }
+    public List<Pokemon> getPokemonEvolutionLines() {
+        if (this.pokemonEvolutionLines.isEmpty()) {
+            this.setPokemonEvolutionLines();
+        }
+        return new ArrayList<Pokemon>(this.pokemonEvolutionLines);
     }
 
     private JCheckBox[] getPokemonTypes() {
@@ -480,6 +513,86 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         }
     }
 
+    private void recursiveBan(Pokemon poke) {
+        banPokemon(poke);
+        for (Evolution evo : poke.evolutionsFrom) {
+            recursiveBan(evo.to);
+        }
+    }
+
+    private void recursiveUnban(Pokemon poke) {
+        unbanPokemon(poke);
+        for (Evolution evo : poke.evolutionsFrom) {
+            recursiveUnban(evo.to);
+        }
+    }
+
+    private void banRandomEvolutionLineActionPerformed() {
+        List<Pokemon> evolutionLines = this.getPokemonEvolutionLines();
+
+        Collections.shuffle(evolutionLines);
+        int banCount = (Integer)banRandomPokemonLineSpinner.getValue();
+        for (Pokemon poke : evolutionLines) {
+            if (banCount == 0) {
+                break;
+            }
+            if (banRandomPokemonLineTypeCheckbox.isSelected()) {
+                if (banByMonoType.isSelected()) {
+                    if (poke.secondaryType == null && typeIsSelected(poke.primaryType)) {
+                        recursiveBan(poke);
+                        banCount--;
+                    }
+                } else if (banByPrimaryType.isSelected()) {
+                    if (typeIsSelected(poke.primaryType)) {
+                        recursiveBan(poke);
+                        banCount--;
+                    }
+                } else if (typeIsSelected(poke.primaryType) || (poke.secondaryType != null && typeIsSelected(poke.secondaryType))) {
+                    recursiveBan(poke);
+                    banCount--;
+                }
+            } else {
+                recursiveBan(poke);
+                banCount--;
+            }
+        }
+
+        populatePokemon(bannedPokemonText, bannedPokemon.getBannedPokemon());
+    }
+
+    private void unBanRandomEvolutionLineActionPerformed() {
+        List<Pokemon> evolutionLines = this.getPokemonEvolutionLines();
+
+        Collections.shuffle(evolutionLines);
+        int banCount = (Integer)banRandomPokemonLineSpinner.getValue();
+        for (Pokemon poke : evolutionLines) {
+            if (banCount == 0) {
+                break;
+            }
+            if (banRandomPokemonLineTypeCheckbox.isSelected()) {
+                if (banByMonoType.isSelected()) {
+                    if (poke.secondaryType == null && typeIsSelected(poke.primaryType)) {
+                        recursiveUnban(poke);
+                        banCount--;
+                    }
+                } else if (banByPrimaryType.isSelected()) {
+                    if (typeIsSelected(poke.primaryType)) {
+                        recursiveUnban(poke);
+                        banCount--;
+                    }
+                } else if (typeIsSelected(poke.primaryType) || (poke.secondaryType != null && typeIsSelected(poke.secondaryType))) {
+                    recursiveUnban(poke);
+                    banCount--;
+                }
+            } else {
+                recursiveUnban(poke);
+                banCount--;
+            }
+        }
+
+        populatePokemon(bannedPokemonText, bannedPokemon.getBannedPokemon());
+    }
+
 
     class ComboItem {
         private Integer value;
@@ -535,6 +648,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
 
         saveBtn = new JButton();
         loadBtn = new JButton();
+        invertBtn = new JButton();
         closeBtn = new JButton();
 
         checkBoxNORMAL= new JCheckBox(bundle.getString("PokemonTypeLabelNormal"));
@@ -561,8 +675,8 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         pokemonIconLabel= new JLabel();
         prevPokeBtn= new JButton("<-");
         nextPokeBtn= new JButton("->");
-        banPokeBtn= new JButton("Ban");
-        unbanPokeBtn= new JButton("Unban");
+        banPokeBtn= new JButton(bundle.getString("BannedPokemonEditorDialog.banBtn.text"));
+        unbanPokeBtn= new JButton(bundle.getString("BannedPokemonEditorDialog.unbanBtn.text"));
         selectPokeCB= new JComboBox<ComboItem>();
         pokePane = new JPanel();
 
@@ -570,17 +684,15 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         banRandomTypePane.setBorder(BorderFactory.createLineBorder(Color.black));
         banRandomCountSpinner = new JSpinner(new SpinnerNumberModel(1, 1,
                 com.dabomstew.pkrandom.pokemon.Type.getAllTypes(romHandler.generationOfPokemon()).size(), 1));
-        banRandomCountSpinner.setEditor(new JSpinner.NumberEditor(banRandomCountSpinner, "# /" +
-                com.dabomstew.pkrandom.pokemon.Type.getAllTypes(romHandler.generationOfPokemon()).size() + " ")
-        );
-        ((JSpinner.NumberEditor) banRandomCountSpinner.getEditor()).getTextField().setEditable(false);
 
-        banRandomTypeBtn = new JButton("Ban");
+
+        banRandomTypeBtn = new JButton(bundle.getString("BannedPokemonEditorDialog.banBtn.text"));
         banRandomTypeBtn.setToolTipText(bundle.getString("BannedPokemonEditorDialog.banRandomTypeButton.tooltipText"));
-        unbanRandomTypeBtn = new JButton("UnBan");
+        unbanRandomTypeBtn = new JButton(bundle.getString("BannedPokemonEditorDialog.unbanBtn.text"));
         unbanRandomTypeBtn.setToolTipText(bundle.getString("BannedPokemonEditorDialog.unbanRandomTypeButton.tooltipText"));
-        banRandomTypeLabel = new JLabel("Random Types");
-        banRandomTypeCheckBox = new JCheckBox("Spoilers");
+        banRandomTypeLabel = new JLabel(bundle.getString("BannedPokemonEditorDialog.banRandomTypeLabel.text")+" (Max:"+com.dabomstew.pkrandom.pokemon.Type.getAllTypes(romHandler.generationOfPokemon()).size()+")");
+        banRandomTypeLabel.setToolTipText(bundle.getString("BannedPokemonEditorDialog.banRandomTypeLabel.tooltipText"));
+        banRandomTypeCheckBox = new JCheckBox(bundle.getString("BannedPokemonEditorDialog.banRandomTypeSpoiler.text"));
         banRandomTypeCheckBox.setToolTipText(bundle.getString("BannedPokemonEditorDialog.banRandomTypeSpoiler.tooltipText"));
 
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
@@ -599,10 +711,10 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         bannedPokemonText.setRows(5);
         bannedPokemonSP.setViewportView(bannedPokemonText);
 
-        selectAllTypesBtn.setText("(Un)Check All");
-        banByTypeBtn.setText("Ban by Type");
+        selectAllTypesBtn.setText(bundle.getString("BannedPokemonEditorDialog.checkAllBtn.text"));
+        banByTypeBtn.setText(bundle.getString("BannedPokemonEditorDialog.banByTypeBtn.text"));
         banByTypeBtn.setToolTipText(bundle.getString("BannedPokemonEditorDialog.banPokeTypeButton.tooltip"));
-        unbanByTypeBtn.setText("Unban by Type");
+        unbanByTypeBtn.setText(bundle.getString("BannedPokemonEditorDialog.unbanByTypeBtn.text"));
         unbanByTypeBtn.setToolTipText(bundle.getString("BannedPokemonEditorDialog.unbanPokeTypeButton.tooltip"));
 
         banByTypeCheckBoxPane.setLayout(new GridLayout(7,4));
@@ -630,10 +742,10 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
             banByTypeCheckBoxPane.add(typeBox);
         }
 
-        banByPrimaryType.setText("by Primary Type");
+        banByPrimaryType.setText(bundle.getString("BannedPokemonEditorDialog.banByPrimaryType.text"));
         banByPrimaryType.setToolTipText(bundle.getString("BannedPokemonEditorDialog.banByPrimaryType.tooltip"));
         banByTypeButtonPane.add(banByPrimaryType);
-        banByMonoType.setText("Mono Type Only");
+        banByMonoType.setText(bundle.getString("BannedPokemonEditorDialog.banByMonoType.text"));
         banByMonoType.setToolTipText(bundle.getString("BannedPokemonEditorDialog.banByMonoType.tooltip"));
 
         banByTypeButtonPane.add(banByMonoType);
@@ -652,13 +764,13 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                 banRandomTypeLayout.createSequentialGroup()
                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGroup(banRandomTypeLayout.createSequentialGroup()
+                                .addComponent(banRandomTypeLabel)
+                                .addGap(15)
+                                .addComponent(banRandomCountSpinner, 20,30,50)
+                                .addGap(15)
                                 .addComponent(banRandomTypeBtn)
                                 .addGap(15)
                                 .addComponent(unbanRandomTypeBtn)
-                                .addGap(15)
-                                .addComponent(banRandomCountSpinner, 50,60,70)
-                                .addGap(15)
-                                .addComponent(banRandomTypeLabel)
                                 .addGap(15)
                                 .addComponent(banRandomTypeCheckBox)
                         )
@@ -680,7 +792,59 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
 
         banRandomTypeBtn.addActionListener(evt -> banRandomTypeAction());
         unbanRandomTypeBtn.addActionListener(evt -> unbanRandomTypeAction());
-        banRandomTypeLabel.setText(bundle.getString("BannedPokemonEditorDialog.banRandomTypeLabel.text"));
+
+        banRandomPokemonLinePane = new JPanel();
+        banRandomPokemonLinePane.setBorder(BorderFactory.createLineBorder(Color.black));
+        banRandomPokemonLineLabel = new JLabel(bundle.getString("BannedPokemonEditorDialog.banRandomPokemonLineLabel.text")+" (Max:"+this.getPokemonEvolutionLines().size()+")");
+        banRandomPokemonLineLabel.setToolTipText(bundle.getString("BannedPokemonEditorDialog.banRandomPokemonLineLabel.tooltipText"));
+        banRandomPokemonLinePane.add(banRandomPokemonLineLabel);
+        banRandomPokemonLineSpinner = new JSpinner(new SpinnerNumberModel(1, 1,
+                this.pokemonEvolutionLines.size(), 1));
+        banRandomPokemonLineTypeCheckbox = new JCheckBox(bundle.getString("BannedPokemonEditorDialog.banRandomPokemonLineTypeLabel.text"));
+        banRandomPokemonLineTypeCheckbox.setToolTipText(bundle.getString("BannedPokemonEditorDialog.banRandomPokemonLineTypeLabel.tooltipText"));
+
+
+        banRandomPokemonLineBanButton = new JButton(bundle.getString("BannedPokemonEditorDialog.banBtn.text"));
+        banRandomPokemonLineBanButton.setToolTipText(bundle.getString("BannedPokemonEditorDialog.banRandomPokemonLineButton.tooltipText"));
+        banRandomPokemonLineBanButton.addActionListener(evt -> banRandomEvolutionLineActionPerformed());
+        banRandomPokemonLinePane.add(banRandomPokemonLineBanButton);
+        banRandomPokemonLineUnBanButton = new JButton(bundle.getString("BannedPokemonEditorDialog.unbanBtn.text"));
+        banRandomPokemonLineUnBanButton.setToolTipText(bundle.getString("BannedPokemonEditorDialog.unbanRandomPokemonLineButton.tooltipText"));
+        banRandomPokemonLineUnBanButton.addActionListener(evt -> unBanRandomEvolutionLineActionPerformed());
+        banRandomPokemonLinePane.add(banRandomPokemonLineUnBanButton);
+
+        GroupLayout banRandomPokemonLineLayout = new GroupLayout(banRandomPokemonLinePane);
+        banRandomPokemonLinePane.setLayout(banRandomPokemonLineLayout);
+
+        banRandomPokemonLineLayout.setHorizontalGroup(
+                banRandomPokemonLineLayout.createSequentialGroup()
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGroup(banRandomPokemonLineLayout.createSequentialGroup()
+                                .addComponent(banRandomPokemonLineLabel)
+                                .addGap(15)
+                                .addComponent(banRandomPokemonLineSpinner, 20,30,50)
+                                .addGap(15)
+                                .addComponent(banRandomPokemonLineBanButton)
+                                .addGap(15)
+                                .addComponent(banRandomPokemonLineUnBanButton)
+                                .addGap(15)
+                                .addComponent(banRandomPokemonLineTypeCheckbox)
+                        )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+        );
+        banRandomPokemonLineLayout.setVerticalGroup(
+                banRandomPokemonLineLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(
+                                banRandomPokemonLineLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
+                                        .addComponent(banRandomPokemonLineLabel)
+                                        .addComponent(banRandomPokemonLineSpinner)
+                                        .addComponent(banRandomPokemonLineBanButton)
+                                        .addComponent(banRandomPokemonLineUnBanButton)
+                                        .addComponent(banRandomPokemonLineTypeCheckbox)
+                        )
+                        .addContainerGap()
+        );
 
         GroupLayout banSelectLayout = new GroupLayout(banSelectPokemonPane);
         banSelectPokemonPane.setLayout(banSelectLayout);
@@ -769,6 +933,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                         .addGroup(banFeaturesLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
                                 .addComponent(banByTypePane)
                                 .addComponent(banRandomTypePane)
+                                .addComponent(banRandomPokemonLinePane)
                                 .addComponent(banSelectPokemonPane)
                         )
         );
@@ -777,6 +942,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                         .addGroup(banFeaturesLayout.createSequentialGroup()
                                 .addComponent(banByTypePane)
                                 .addComponent(banRandomTypePane)
+                                .addComponent(banRandomPokemonLinePane)
                                 .addComponent(banSelectPokemonPane)
                         )
         );
@@ -789,6 +955,9 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
 
         loadBtn.setText(bundle.getString("BannedPokemonEditorDialog.loadBtn.text"));
         loadBtn.addActionListener(evt -> loadBtnActionPerformed());
+
+        invertBtn.setText(bundle.getString("BannedPokemonEditorDialog.invertBtn.text"));
+        invertBtn.addActionListener(evt -> invertBtnActionPerformed());
 
         closeBtn.setText(bundle.getString("BannedPokemonEditorDialog.closeBtn.text"));
         closeBtn.addActionListener(evt -> closeBtnActionPerformed());
@@ -804,6 +973,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                                         .addGroup(layout.createSequentialGroup()
                                                 .addComponent(saveBtn)
                                                 .addComponent(loadBtn)
+                                                .addComponent(invertBtn)
                                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                                 .addComponent(closeBtn)))
                                 .addContainerGap())
@@ -817,6 +987,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(saveBtn)
                                         .addComponent(loadBtn)
+                                        .addComponent(invertBtn)
                                         .addComponent(closeBtn))
                                 .addContainerGap())
         );
@@ -872,6 +1043,13 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
     private JLabel banRandomTypeLabel;
     private JCheckBox banRandomTypeCheckBox;
     private JFileChooser bannedFileChooser;
-
+    private JPanel banRandomPokemonLinePane;
+    private JLabel banRandomPokemonLineLabel;
+    private JSpinner banRandomPokemonLineSpinner;
+    private JButton banRandomPokemonLineBanButton;
+    private JButton banRandomPokemonLineUnBanButton;
+    private JCheckBox banRandomPokemonLineTypeCheckbox;
+    private JLabel banRandomPokemonLineTypeLabel;
+    private JButton invertBtn;
 
 }

@@ -18,6 +18,7 @@ public class PokemonPool {
     public List<Pokemon> noLegendaryListInclFormes, onlyLegendaryListInclFormes;
     public List<Pokemon> noLegendaryAltsList, onlyLegendaryAltsList;
 
+
     public PokemonPool(AbstractRomHandler handler) {
         this.handler = handler;
     }
