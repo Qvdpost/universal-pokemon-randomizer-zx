@@ -26,25 +26,21 @@ package com.dabomstew.pkrandom.newgui;
 /*--  along with this program. If not, see <http://www.gnu.org/licenses/>.  --*/
 /*----------------------------------------------------------------------------*/
 
-import com.dabomstew.pkrandom.*;
-import com.dabomstew.pkrandom.ctr.BFLIM;
+import com.dabomstew.pkrandom.BannedPokemonSet;
+import com.dabomstew.pkrandom.FileFunctions;
+import com.dabomstew.pkrandom.SysConstants;
 import com.dabomstew.pkrandom.pokemon.Evolution;
-import com.dabomstew.pkrandom.pokemon.MegaEvolution;
 import com.dabomstew.pkrandom.pokemon.Pokemon;
-import com.dabomstew.pkrandom.pokemon.Type;
 import com.dabomstew.pkrandom.romhandlers.RomHandler;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.*;
-import java.nio.Buffer;
 import java.nio.file.Files;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class BannedPokemonEditorDialog extends javax.swing.JDialog {
@@ -244,6 +240,14 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         }
         textArea.setText(sb.toString());
         textArea.update(textArea.getGraphics());
+
+        updateAmountLabel();
+    }
+
+    private void updateAmountLabel() {
+        int amountBanned = bannedPokemon.getBannedPokemon().size();
+        int amountTotal = allPokemon.size();
+        amountBannedLabel.setText("Currently " + amountBanned + " Pokemon banned (" + Math.round(amountBanned * 100 / amountTotal) + "% of the Pokemon in this game)");
     }
 
     private void setPokemonEvolutionLines() {
@@ -649,6 +653,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         saveBtn = new JButton();
         loadBtn = new JButton();
         invertBtn = new JButton();
+        amountBannedLabel = new JLabel();
         closeBtn = new JButton();
 
         checkBoxNORMAL= new JCheckBox(bundle.getString("PokemonTypeLabelNormal"));
@@ -959,6 +964,8 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         invertBtn.setText(bundle.getString("BannedPokemonEditorDialog.invertBtn.text"));
         invertBtn.addActionListener(evt -> invertBtnActionPerformed());
 
+        amountBannedLabel.setText("Test");
+
         closeBtn.setText(bundle.getString("BannedPokemonEditorDialog.closeBtn.text"));
         closeBtn.addActionListener(evt -> closeBtnActionPerformed());
 
@@ -974,6 +981,8 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                                                 .addComponent(saveBtn)
                                                 .addComponent(loadBtn)
                                                 .addComponent(invertBtn)
+                                                .addGap(15)
+                                                .addComponent(amountBannedLabel)
                                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                                 .addComponent(closeBtn)))
                                 .addContainerGap())
@@ -988,6 +997,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                                         .addComponent(saveBtn)
                                         .addComponent(loadBtn)
                                         .addComponent(invertBtn)
+                                        .addComponent(amountBannedLabel)
                                         .addComponent(closeBtn))
                                 .addContainerGap())
         );
@@ -999,6 +1009,8 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
     private JSplitPane editorSplitPane;
     private JButton saveBtn;
     private JButton loadBtn;
+
+    private JLabel amountBannedLabel;
     private JScrollPane bannedPokemonSP;
     private JPanel banFeaturesSP;
     private JPanel banByTypePane;
