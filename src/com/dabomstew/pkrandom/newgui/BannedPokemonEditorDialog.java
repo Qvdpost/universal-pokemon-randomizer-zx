@@ -247,7 +247,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
     private void updateAmountLabel() {
         int amountBanned = bannedPokemon.getBannedPokemon().size();
         int amountTotal = allPokemon.size();
-        amountBannedLabel.setText("Currently " + amountBanned + " Pokemon banned (" + Math.round(amountBanned * 100 / amountTotal) + "% of the Pokemon in this game)");
+        amountBannedLabel.setText(bundle.getString("BannedPokemonEditorDialog.currentlyBannedNumber0.text") + " " + amountBanned + " " + bundle.getString("BannedPokemonEditorDialog.currentlyBannedNumber1.text") +  " (" + Math.round(amountBanned * 100 / amountTotal) + "% " + bundle.getString("BannedPokemonEditorDialog.currentlyBannedNumber2.text") + ")");
     }
 
     private void setPokemonEvolutionLines() {
