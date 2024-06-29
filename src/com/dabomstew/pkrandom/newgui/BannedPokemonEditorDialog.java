@@ -989,11 +989,11 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         invertBtn.setText(bundle.getString("BannedPokemonEditorDialog.invertBtn.text"));
         invertBtn.addActionListener(evt -> invertBtnActionPerformed());
 
-        undoBtn.setText("Undo");//bundle.getString("BannedPokemonEditorDialog.undoBtn.text"));
+        undoBtn.setText(bundle.getString("BannedPokemonEditorDialog.undoBtn.text"));
         undoBtn.setEnabled(false);
         undoBtn.addActionListener(evt -> undoBtnActionPerformed());
 
-        redoBtn.setText("Redo");//bundle.getString("BannedPokemonEditorDialog.undoBtn.text"));
+        redoBtn.setText(bundle.getString("BannedPokemonEditorDialog.redoBtn.text"));
         redoBtn.setEnabled(false);
         redoBtn.addActionListener(evt -> redoBtnActionPerformed());
 
