@@ -37,10 +37,10 @@ import java.util.*;
 public class BannedPokemonSet {
 
     private Set<Integer> bannedPokemon;
+    private BannedPokemonSet next;
+    private BannedPokemonSet previous;
 
     private static final int BANNED_POKEMON_VERSION = 1;
-    private Stack<Set<Integer>> undoSets = new Stack<>();
-    private Stack<Set<Integer>> redoSets = new Stack<>();
 
 
     // Standard constructor: read binary data from an input stream.
@@ -53,12 +53,31 @@ public class BannedPokemonSet {
         bannedPokemon = readIDsBlock(data);
     }
 
+    public BannedPokemonSet(BannedPokemonSet bannedSet) {
+        bannedPokemon = new HashSet<>();
+        this.setBannedPokemon(bannedSet.getBannedPokemon());
+        this.setPrevious(bannedSet);
+        bannedSet.setNext(this);
+    }
+
     // Alternate constructor: blank all lists
-    // Used for importing old names and on the editor dialog.
     public BannedPokemonSet() {
         bannedPokemon = new HashSet<>();
-        undoSets.push(new HashSet<>());
-        redoSets.push(new HashSet<>());
+    }
+
+
+
+    public BannedPokemonSet getNext() {
+        return this.next;
+    }
+    public void setNext(BannedPokemonSet bannedSet) {
+        this.next = bannedSet;
+    }
+    public BannedPokemonSet getPrevious() {
+        return this.previous;
+    }
+    public void setPrevious(BannedPokemonSet bannedSet) {
+        this.previous = bannedSet;
     }
 
     private Set<Integer> readIDsBlock(InputStream in) throws IOException {
@@ -124,6 +143,9 @@ public class BannedPokemonSet {
     public void addBannedPokemon(Integer pokemon) {
         bannedPokemon.add(pokemon);
     }
+    public void addBannedPokemon(Pokemon pokemon) {
+        bannedPokemon.add(pokemon.number);
+    }
 
     public void addBannedPokemon(List<Integer> pokemon) {
         bannedPokemon.addAll(pokemon);
@@ -136,28 +158,6 @@ public class BannedPokemonSet {
     public void setBannedPokemon(Collection<Integer> pokemon) {
         bannedPokemon.clear();
         bannedPokemon.addAll(pokemon);
-    }
-
-    public boolean isUndoPossible() {
-        return !undoSets.isEmpty();
-    }
-
-    public boolean isRedoPossible() {
-        return !redoSets.isEmpty();
-    }
-    public void undo() {
-        redoSets.push(new HashSet<>(bannedPokemon));
-        bannedPokemon = undoSets.pop();
-    }
-
-    public void redo() {
-        undoSets.push(new HashSet<>(bannedPokemon));
-        bannedPokemon = redoSets.pop();
-    }
-
-    public void saveForUndo() {
-        undoSets.push(new HashSet<>(bannedPokemon));
-        redoSets.clear();
     }
 
     public boolean contains(Pokemon pokemon) {
