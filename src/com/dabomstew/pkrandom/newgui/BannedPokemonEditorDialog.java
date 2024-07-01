@@ -121,6 +121,8 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         save();
     }// GEN-LAST:event_saveBtnActionPerformed
 
+    private void addBtnActionPerformed() { add(); }
+
     private void invertBtnActionPerformed() {
         this.saveForUndo();
         syncBannedPokemon();
@@ -208,6 +210,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
     }
 
     private boolean load() {
+        this.saveForUndo();
         bannedFileChooser.setSelectedFile(null);
         int returnVal = bannedFileChooser.showOpenDialog(this);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -216,6 +219,45 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                 DataInputStream dis = new DataInputStream(Files.newInputStream(fh.toPath()));
 
                 bannedPokemon = new BannedPokemonSet(dis);
+
+                for (int pokeId : new ArrayList<Integer>(bannedPokemon.getBannedPokemon())) {
+                    if (pokeId >= allPokemon.size()) {
+                        bannedPokemon.removeBannedPokemon(pokeId);
+                    }
+                }
+
+                populatePokemon(bannedPokemonText, bannedPokemon.getBannedPokemon());
+
+                dis.close();
+                return true;
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Could not load Banned Pokemon File.");
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private boolean add() {
+        this.saveForUndo();
+        syncBannedPokemon();
+
+        bannedFileChooser.setSelectedFile(null);
+        int returnVal = bannedFileChooser.showOpenDialog(this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File fh = bannedFileChooser.getSelectedFile();
+            try {
+                DataInputStream dis = new DataInputStream(Files.newInputStream(fh.toPath()));
+
+                BannedPokemonSet temp = new BannedPokemonSet(dis);
+
+                bannedPokemon.addBannedPokemon(new ArrayList<Integer>(temp.getBannedPokemon()));
+
+                for (int pokeId : new ArrayList<Integer>(bannedPokemon.getBannedPokemon())) {
+                    if (pokeId >= allPokemon.size()) {
+                        bannedPokemon.removeBannedPokemon(pokeId);
+                    }
+                }
 
                 populatePokemon(bannedPokemonText, bannedPokemon.getBannedPokemon());
 
@@ -282,8 +324,14 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
     }
 
     private void updateAmountLabel() {
-        int amountBanned = bannedPokemon.getBannedPokemon().size();
+        int amountBanned = 0;
         int amountTotal = allPokemon.size();
+
+        for (int pokeId : bannedPokemon.getBannedPokemon()) {
+            if (pokeId < amountTotal) {
+                amountBanned += 1;
+            }
+        }
         amountBannedLabel.setText(bundle.getString("BannedPokemonEditorDialog.currentlyBannedNumber0.text") + " " + amountBanned + " " + bundle.getString("BannedPokemonEditorDialog.currentlyBannedNumber1.text") +  " <br />(" + Math.round(amountBanned * 100.0 / amountTotal) + "% " + bundle.getString("BannedPokemonEditorDialog.currentlyBannedNumber2.text") + ")");
     }
 
@@ -707,6 +755,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
 
         saveBtn = new JButton();
         loadBtn = new JButton();
+        addBtn = new JButton();
         invertBtn = new JButton();
         clearBtn = new JButton();
         undoBtn = new JButton();
@@ -1019,6 +1068,9 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         loadBtn.setText(bundle.getString("BannedPokemonEditorDialog.loadBtn.text"));
         loadBtn.addActionListener(evt -> loadBtnActionPerformed());
 
+        addBtn.setText(bundle.getString("BannedPokemonEditorDialog.addBtn.text"));
+        addBtn.addActionListener(evt -> addBtnActionPerformed());
+
         invertBtn.setText(bundle.getString("BannedPokemonEditorDialog.invertBtn.text"));
         invertBtn.addActionListener(evt -> invertBtnActionPerformed());
 
@@ -1046,20 +1098,22 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                                 .addContainerGap()
                                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                                         .addGroup(layout.createSequentialGroup()
-                                                .addComponent(saveBtn)
-                                                .addComponent(loadBtn))
+                                            .addComponent(undoBtn)
+                                            .addComponent(redoBtn)
+                                            .addGap(15)
+                                            .addComponent(invertBtn)
+                                            .addGap(5)
+                                            .addComponent(clearBtn)
+                                            .addGap(45)
+                                            .addComponent(amountBannedLabel)
+                                        )
                                         .addComponent(editorSplitPane, GroupLayout.DEFAULT_SIZE, 616, Short.MAX_VALUE)
                                         .addGroup(layout.createSequentialGroup()
-                                                .addComponent(undoBtn)
-                                                .addComponent(redoBtn)
-                                                .addGap(15)
-                                                .addComponent(invertBtn)
-                                                .addGap(5)
-                                                .addComponent(clearBtn)
-                                                .addGap(45)
-                                                .addComponent(amountBannedLabel)
-                                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addComponent(closeBtn)))
+                                            .addComponent(saveBtn)
+                                            .addComponent(loadBtn)
+                                            .addComponent(addBtn)
+                                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                            .addComponent(closeBtn)))
                                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -1067,18 +1121,20 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
                         .addGroup(layout.createSequentialGroup()
                                 .addContainerGap()
                                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(saveBtn)
-                                        .addComponent(loadBtn))
+                                    .addComponent(undoBtn)
+                                    .addComponent(redoBtn)
+                                    .addComponent(invertBtn)
+                                    .addComponent(clearBtn)
+                                    .addComponent(amountBannedLabel)
+                                )
                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(editorSplitPane, GroupLayout.DEFAULT_SIZE, 357, Short.MAX_VALUE)
                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(undoBtn)
-                                        .addComponent(redoBtn)
-                                        .addComponent(invertBtn)
-                                        .addComponent(clearBtn)
-                                        .addComponent(amountBannedLabel)
-                                        .addComponent(closeBtn))
+                                    .addComponent(saveBtn)
+                                    .addComponent(loadBtn)
+                                    .addComponent(addBtn)
+                                    .addComponent(closeBtn))
                                 .addContainerGap())
         );
 
@@ -1089,6 +1145,7 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
     private JSplitPane editorSplitPane;
     private JButton saveBtn;
     private JButton loadBtn;
+    private JButton addBtn;
 
     private JLabel amountBannedLabel;
     private JScrollPane bannedPokemonSP;
