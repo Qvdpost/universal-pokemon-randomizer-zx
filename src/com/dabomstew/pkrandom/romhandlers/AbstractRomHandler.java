@@ -7155,8 +7155,7 @@ public abstract class AbstractRomHandler implements RomHandler {
     @Override
     public List<Pokemon> getAbilityDependentFormes() {
         List<Pokemon> abilityDependentFormes = new ArrayList<>();
-        for (int i = 0; i < mainPokemonPool.mainPokemonListInclFormes.size(); i++) {
-            Pokemon pokemon = mainPokemonPool.getPokemon(i);
+        for (Pokemon pokemon : mainPokemonPool.mainPokemonListInclFormes) {
             if (pokemon.baseForme != null) {
                 if (pokemon.baseForme.number == Species.castform) {
                     // All alternate Castform formes
@@ -7179,8 +7178,7 @@ public abstract class AbstractRomHandler implements RomHandler {
     @Override
     public List<Pokemon> getBannedFormesForPlayerPokemon() {
         List<Pokemon> bannedFormes = new ArrayList<>();
-        for (int i = 0; i < mainPokemonPool.mainPokemonListInclFormes.size(); i++) {
-            Pokemon pokemon = mainPokemonPool.getPokemon(i);
+        for (Pokemon pokemon : mainPokemonPool.mainPokemonListInclFormes) {
             if (pokemon.baseForme != null) {
                 if (pokemon.baseForme.number == Species.giratina) {
                     // Giratina-O is banned because it reverts back to Altered Forme if

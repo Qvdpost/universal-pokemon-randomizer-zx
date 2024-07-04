@@ -1329,13 +1329,17 @@ public class Randomizer {
         log.println("--Banned Pokemon--");
         for (int i : settings.getBannedPokemon().getBannedPokemon()) {
             if (i < pokePool.mainPokemonListInclFormes.size()) {
-
                 Pokemon poke = pokePool.getPokemon(i);
+
+                if (poke == null) {
+                    for (Pokemon pokemon : pokePool.mainPokemonListInclFormes) {
+                        System.out.println(pokemon.toString());
+                    }
+                }
 
                 log.printf("%s (%s)", poke.fullName(), poke.number);
                 log.println();
             }
-
         }
     }
 

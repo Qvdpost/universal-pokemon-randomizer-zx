@@ -193,7 +193,7 @@ public class PokemonPool {
         if (pokeId < this.mainPokemonList.size()) {
             poke = this.mainPokemonListInclFormes.get(pokeId);
         }
-        if (poke != null && poke.number != pokeId) {
+        if (poke == null || poke.number != pokeId) {
             Optional<Pokemon> optPoke = this.mainPokemonListInclFormes.stream()
                     .filter(pokemon -> pokemon.number == pokeId)
                     .findFirst();
