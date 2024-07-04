@@ -109,6 +109,8 @@ public interface RomHandler {
 
     PokemonPool getPokemonPool();
 
+    PokemonPool getAllPokemonPool();
+
     void removeEvosForPokemonPool();
 
     // ===============

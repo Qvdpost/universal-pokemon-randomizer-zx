@@ -154,6 +154,7 @@ public class BannedPokemonSet {
     public void removeBannedPokemon(Integer pokemon) {
         bannedPokemon.remove(pokemon);
     }
+    public void removeBannedPokemon(List<Integer> pokemon) { pokemon.forEach(bannedPokemon::remove); }
 
     public void setBannedPokemon(Collection<Integer> pokemon) {
         bannedPokemon.clear();

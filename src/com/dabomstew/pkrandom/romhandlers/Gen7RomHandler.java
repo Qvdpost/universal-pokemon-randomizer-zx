@@ -308,8 +308,10 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
         loadPokemonStats();
         loadMoves();
 
-        pokemonListInclFormes = Arrays.asList(pokes);
-        pokemonList = Arrays.asList(Arrays.copyOfRange(pokes,0,Gen7Constants.getPokemonCount(romEntry.romType) + 1));
+        pokemonListInclFormes = Arrays.asList(pokes.clone());
+        pokemonList = Arrays.asList(Arrays.copyOfRange(pokes.clone(),0,Gen7Constants.getPokemonCount(romEntry.romType) + 1));
+
+        swapAlolan();
 
         itemNames = getStrings(false,romEntry.getInt("ItemNamesTextOffset"));
         abilityNames = getStrings(false,romEntry.getInt("AbilityNamesTextOffset"));
@@ -1402,6 +1404,10 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
 
     private Pokemon getPokemonForEncounter(int species, int forme) {
         Pokemon pokemon = pokes[species];
+
+        if (pokemon.baseForme != null && Gen7Constants.speciesWithAlolanForms.contains(pokemon.baseForme.number)) {
+            return pokemon;
+        }
 
         // If the forme is purely cosmetic, just use the base forme as the Pokemon
         // for this encounter (the cosmetic forme will be stored in the encounter).
@@ -3817,5 +3823,23 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
             }
         }
         return items;
+    }
+
+    private void swapAlolan(){
+        for (Integer pokeID : Gen7Constants.speciesWithAlolanForms) {
+            Pokemon poke = pokes[pokeID];
+            Pokemon altPoke = poke;
+            for (int i = Gen7Constants.getPokemonCount(romEntry.romType); i < pokes.length; i++) {
+                Pokemon altForm = pokes[i];
+                if (altForm.baseForme != null && altForm.baseForme.number == poke.number) {
+                    altPoke = altForm;
+                    break;
+                }
+            }
+
+            pokemonList.set(poke.number, altPoke);
+            pokemonListInclFormes.set(altPoke.number, poke);
+            pokemonListInclFormes.set(poke.number, altPoke);
+        }
     }
 }

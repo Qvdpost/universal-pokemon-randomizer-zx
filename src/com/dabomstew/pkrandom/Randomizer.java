@@ -1203,7 +1203,6 @@ public class Randomizer {
     private int logStaticPokemon(final PrintStream log, int checkValue, List<StaticEncounter> oldStatics) {
 
         List<StaticEncounter> newStatics = romHandler.getStaticPokemon();
-
         log.println("--Static Pokemon--");
         Map<String, Integer> seenPokemon = new TreeMap<>();
         for (int i = 0; i < oldStatics.size(); i++) {
@@ -1325,10 +1324,14 @@ public class Randomizer {
             return;
         }
 
+        PokemonPool pokePool = romHandler.getAllPokemonPool();
+
         log.println("--Banned Pokemon--");
         for (int i : settings.getBannedPokemon().getBannedPokemon()) {
-            if (i < romHandler.getPokemon().size()) {
-                Pokemon poke = romHandler.getPokemon().get(i);
+            if (i < pokePool.mainPokemonListInclFormes.size()) {
+
+                Pokemon poke = pokePool.getPokemon(i);
+
                 log.printf("%s (%s)", poke.fullName(), poke.number);
                 log.println();
             }

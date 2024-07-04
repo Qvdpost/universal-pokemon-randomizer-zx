@@ -2,10 +2,8 @@ package com.dabomstew.pkrandom;
 
 import com.dabomstew.pkrandom.constants.*;
 import com.dabomstew.pkrandom.pokemon.*;
-import com.dabomstew.pkrandom.romhandlers.RomHandler;
 import com.dabomstew.pkrandom.romhandlers.AbstractRomHandler;
 
-import java.io.PrintStream;
 import java.util.*;
 
 public class PokemonPool {
@@ -82,14 +80,18 @@ public class PokemonPool {
             if (restrictions.allow_evolutionary_relatives) {
                 addEvolutionaryRelatives(mainPokemonList);
             }
-            
-            if (restrictions.ban_pokemon) {
-                removeBannedPokemon(mainPokemonList, allPokemon, settings.getBannedPokemon());
-            }
 
             // Now that mainPokemonList has all the selected Pokemon, update
             // mainPokemonListInclFormes too
             addAllPokesInclFormes(mainPokemonList, mainPokemonListInclFormes);
+
+            if (restrictions.ban_pokemon) {
+                removeBannedPokemon(mainPokemonList, allPokemon, settings.getBannedPokemon());
+            }
+
+            if (restrictions.ban_pokemon) {
+                removeBannedPokemon(mainPokemonListInclFormes, this.handler.getPokemonInclFormes(), settings.getBannedPokemon());
+            }
 
             // Populate megaEvolutionsList with all of the mega evolutions that exist in the
             // pool
@@ -145,7 +147,10 @@ public class PokemonPool {
     private void removeBannedPokemon(List<Pokemon> pokemonPool, List<Pokemon> allPokemon, BannedPokemonSet bannedPokemon) {
         for (int i : bannedPokemon.getBannedPokemon()) {
             if (i < allPokemon.size()) {
-                pokemonPool.remove(allPokemon.get(i));
+                Pokemon poke = this.getPokemon(i);
+                if (poke != null) {
+                    pokemonPool.remove(poke);
+                }
             }
         }
     }
@@ -176,9 +181,27 @@ public class PokemonPool {
                 if (potentialAltForme.baseForme != null
                         && potentialAltForme.baseForme.number == currentPokemon.number) {
                     pokemonPoolInclFormes.add(potentialAltForme);
+                } else if (potentialAltForme.formeNumber == 0) {
+                    pokemonPoolInclFormes.add(potentialAltForme);
                 }
             }
         }
+    }
+
+    public Pokemon getPokemon(Integer pokeId) {
+        Pokemon poke = null;
+        if (pokeId < this.mainPokemonList.size()) {
+            poke = this.mainPokemonListInclFormes.get(pokeId);
+        }
+        if (poke != null && poke.number != pokeId) {
+            Optional<Pokemon> optPoke = this.mainPokemonListInclFormes.stream()
+                    .filter(pokemon -> pokemon.number == pokeId)
+                    .findFirst();
+            if (optPoke.isPresent()) {
+                poke = optPoke.get();
+            }
+        }
+        return poke;
     }
 
     private List<Pokemon> allPokemonWithoutNull() {
