@@ -146,11 +146,9 @@ public class PokemonPool {
 
     private void removeBannedPokemon(List<Pokemon> pokemonPool, List<Pokemon> allPokemon, BannedPokemonSet bannedPokemon) {
         for (int i : bannedPokemon.getBannedPokemon()) {
-            if (i < allPokemon.size()) {
-                Pokemon poke = this.getPokemon(i);
-                if (poke != null) {
-                    pokemonPool.remove(poke);
-                }
+            Pokemon poke = this.getPokemon(i);
+            if (poke != null) {
+                pokemonPool.remove(poke);
             }
         }
     }
