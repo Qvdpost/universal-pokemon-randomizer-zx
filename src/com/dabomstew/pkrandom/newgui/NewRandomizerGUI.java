@@ -3763,6 +3763,13 @@ public class NewRandomizerGUI {
             puBanBadItemsCheckBox.setEnabled(false);
             puBanBadItemsCheckBox.setSelected(false);
         }
+
+        JCheckBox mtAllSOSCB = tweakCheckBoxes.get(15);
+        JCheckBox mtNoSOSCB = tweakCheckBoxes.get(23);
+        mtAllSOSCB.setEnabled(!mtNoSOSCB.isSelected());
+        mtNoSOSCB.setEnabled(!mtAllSOSCB.isSelected());
+
+
     }
 
     private void initTweaksPanel() {
@@ -3773,6 +3780,7 @@ public class NewRandomizerGUI {
             JCheckBox tweakBox = new JCheckBox();
             tweakBox.setText(ct.getTweakName());
             tweakBox.setToolTipText(ct.getTooltipText());
+            tweakBox.addActionListener(evt -> enableOrDisableSubControls());
             tweakCheckBoxes.add(tweakBox);
         }
     }

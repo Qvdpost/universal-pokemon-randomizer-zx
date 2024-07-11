@@ -1099,9 +1099,13 @@ public class Randomizer {
             }
             log.print("(rate=" + es.rate + ")");
             log.println();
+            Pokemon primePoke = es.encounters.get(0).pokemon;
             for (Encounter e : es.encounters) {
                 StringBuilder sb = new StringBuilder();
                 if (e.isSOS) {
+                    if (primePoke.callRate == 0) {
+                        continue;
+                    }
                     String stringToAppend;
                     switch (e.sosType) {
                         case RAIN:

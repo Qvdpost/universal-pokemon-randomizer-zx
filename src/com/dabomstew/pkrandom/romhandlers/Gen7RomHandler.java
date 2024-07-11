@@ -2407,6 +2407,7 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
         available |= MiscTweak.BAN_LUCKY_EGG.getValue();
         available |= MiscTweak.SOS_BATTLES_FOR_ALL.getValue();
         available |= MiscTweak.RETAIN_ALT_FORMES.getValue();
+        available |= MiscTweak.NO_SOS_BATTLES.getValue();
         return available;
     }
 
@@ -2419,6 +2420,8 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
             nonBadItems.banSingles(Items.luckyEgg);
         } else if (tweak == MiscTweak.SOS_BATTLES_FOR_ALL) {
             positiveCallRates();
+        } else if (tweak == MiscTweak.NO_SOS_BATTLES) {
+            zeroCallRates();
         } else if (tweak == MiscTweak.RETAIN_ALT_FORMES) {
             try {
                 patchFormeReversion();
@@ -2457,6 +2460,15 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
             if (pk == null) continue;
             if (pk.callRate <= 0) {
                 pk.callRate = 5;
+            }
+        }
+    }
+
+    private void zeroCallRates() {
+        for (Pokemon pk: pokes) {
+            if (pk == null) continue;
+            if (pk.callRate > 0) {
+                pk.callRate = 0;
             }
         }
     }
