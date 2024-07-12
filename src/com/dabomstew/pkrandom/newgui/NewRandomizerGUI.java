@@ -537,13 +537,15 @@ public class NewRandomizerGUI {
                     tpSwapMegaEvosCheckBox.setEnabled(false);
                     tpSwapMegaEvosCheckBox.setSelected(false);
                 }
+                if (currentRestrictions != null && currentRestrictions.ban_pokemon) {
+                    wpOnlyRandomizeBannedCheckBox.setEnabled(!wpUnchangedRadioButton.isSelected());
+                    stpOnlyRandomizeBannedCheckBox.setEnabled(!stpUnchangedRadioButton.isSelected());
+                    igtOnlyRandomizeBannedCheckBox.setEnabled(!igtUnchangedRadioButton.isSelected());
+                    tpOnlyRandomizeBannedCheckBox.setEnabled(!isTrainerSetting(0));
+                }
                 if (currentRestrictions != null) {
-                    wpOnlyRandomizeBannedCheckBox.setEnabled(currentRestrictions.ban_pokemon && !wpUnchangedRadioButton.isSelected());
-                    stpOnlyRandomizeBannedCheckBox.setEnabled(currentRestrictions.ban_pokemon && !stpUnchangedRadioButton.isSelected());
-                    igtOnlyRandomizeBannedCheckBox.setEnabled(currentRestrictions.ban_pokemon && !igtUnchangedRadioButton.isSelected());
-                    tpOnlyRandomizeBannedCheckBox.setEnabled(currentRestrictions.ban_pokemon && !isTrainerSetting(0));
-                    tpNoBanRandomizeCheckBox.setEnabled(currentRestrictions.ban_pokemon && !isTrainerSetting(0));
-                    tpRivalNoBanRandomizeCheckBox.setEnabled(currentRestrictions.ban_pokemon && !tpRivalUnchangedRadioButton.isSelected());
+                    tpNoBanRandomizeCheckBox.setEnabled(!isTrainerSetting(0));
+                    tpRivalNoBanRandomizeCheckBox.setEnabled(!tpRivalUnchangedRadioButton.isSelected());
                 }
             }
         });
@@ -1494,7 +1496,6 @@ public class NewRandomizerGUI {
     }
 
     private void restoreStateFromSettings(Settings settings) {
-
         limitPokemonCheckBox.setSelected(settings.isLimitPokemon());
         currentRestrictions = settings.getCurrentRestrictions();
         if (currentRestrictions != null) {
@@ -1768,7 +1769,7 @@ public class NewRandomizerGUI {
         Settings settings = new Settings();
         settings.setRomName(this.romHandler.getROMName());
 
-        settings.setLimitPokemon(limitPokemonCheckBox.isSelected() && currentRestrictions != null && currentRestrictions.ban_pokemon);
+        settings.setLimitPokemon(limitPokemonCheckBox.isSelected() && currentRestrictions != null);
         settings.setCurrentRestrictions(currentRestrictions);
         settings.setBanIrregularAltFormes(noIrregularAltFormesCheckBox.isSelected() && noIrregularAltFormesCheckBox.isVisible());
         settings.setRaceMode(raceModeCheckBox.isSelected());
@@ -3016,7 +3017,7 @@ public class NewRandomizerGUI {
 
             populateDropdowns();
 
-            tpRivalNoBanRandomizeCheckBox.setEnabled(!tpRivalUnchangedRadioButton.isSelected() && (limitPokemonCheckBox.isSelected() && currentRestrictions != null && currentRestrictions.ban_pokemon));
+            tpRivalNoBanRandomizeCheckBox.setEnabled(!tpRivalUnchangedRadioButton.isSelected() && limitPokemonCheckBox.isSelected());
 
             totpPanel.setVisible(pokemonGeneration == 7);
             if (totpPanel.isVisible()) {
@@ -3530,7 +3531,7 @@ public class NewRandomizerGUI {
             tpEliteFourUniquePokemonCheckBox.setEnabled(tpEliteFourUniquePokemonCheckBox.isVisible());
 
             tpOnlyRandomizeBannedCheckBox.setEnabled(limitPokemonCheckBox.isSelected() && currentRestrictions != null && currentRestrictions.ban_pokemon);
-            tpNoBanRandomizeCheckBox.setEnabled(limitPokemonCheckBox.isSelected() && currentRestrictions != null && currentRestrictions.ban_pokemon);
+            tpNoBanRandomizeCheckBox.setEnabled(limitPokemonCheckBox.isSelected());
         }
 
         if (tpForceFullyEvolvedAtCheckBox.isSelected()) {
@@ -3610,7 +3611,7 @@ public class NewRandomizerGUI {
             tpRivalAllowAltFormesCheckBox.setEnabled(true);
         }
 
-        tpRivalNoBanRandomizeCheckBox.setEnabled(!tpRivalUnchangedRadioButton.isSelected() && (limitPokemonCheckBox.isSelected() && currentRestrictions != null && currentRestrictions.ban_pokemon));
+        tpRivalNoBanRandomizeCheckBox.setEnabled(!tpRivalUnchangedRadioButton.isSelected() && limitPokemonCheckBox.isSelected());
 
         if (!totpUnchangedRadioButton.isSelected() || !totpAllyUnchangedRadioButton.isSelected()) {
             totpAllowAltFormesCheckBox.setEnabled(true);
