@@ -768,38 +768,6 @@ public class BannedPokemonEditorDialog extends javax.swing.JDialog {
         populatePokemon(bannedPokemonText, bannedPokemon.getBannedPokemon());
     }
 
-
-    class ComboItem {
-        private Integer value;
-        private String label;
-
-        public ComboItem(Integer value, String label) {
-            this.value = value;
-            this.label = label;
-        }
-
-        public Integer getValue() {
-            return this.value;
-        }
-
-        public String getLabel() {
-            return this.label;
-        }
-
-        @Override
-        public String toString() {
-            return label;
-        }
-    }
-
-    private void insertComboItem(ComboItem item, ComboItem[] array, int index) {
-        for (int i = array.length - 1; i > index + 1; i--) {
-            array[i] = array[i-1];
-            array[i-1] = null;
-        }
-        array[index + 1] = item;
-    }
-
     private void initComponents() {
 
         bannedFileChooser = new JFileChooser();

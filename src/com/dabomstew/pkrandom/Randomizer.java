@@ -82,6 +82,7 @@ public class Randomizer {
         boolean movesetsChanged = false;
         boolean pokemonTraitsChanged = false;
         boolean startersChanged = false;
+        boolean rivalStartersChanged = false;
         boolean evolutionsChanged = false;
         boolean trainersChanged = false;
         boolean trainerMovesetsChanged = false;
@@ -465,11 +466,33 @@ public class Randomizer {
                 break;
         }
 
-        if ((settings.getTrainersMod() != Settings.TrainersMod.UNCHANGED
-                || settings.getStartersMod() != Settings.StartersMod.UNCHANGED)
-                && settings.isRivalCarriesStarterThroughout()) {
-            romHandler.rivalCarriesStarter();
-            trainersChanged = true;
+        switch(settings.getRivalStarterMod()) {
+            case CUSTOM:
+                romHandler.customRivalStarter(settings);
+                trainersChanged = true;
+                rivalStartersChanged = true;
+                break;
+            case COMPLETELY_RANDOM:
+                romHandler.randomizeRivalStarter(settings);
+                trainersChanged = true;
+                rivalStartersChanged = true;
+                break;
+            case RANDOM_WITH_TWO_EVOLUTIONS:
+                romHandler.randomizeBasicTwoEvosRivalStarter(settings);
+                trainersChanged = true;
+                rivalStartersChanged = true;
+                break;
+            case SAME:
+                romHandler.rivalCarriesStarter();
+                trainersChanged = true;
+                rivalStartersChanged = true;
+                break;
+            default:
+                break;
+        }
+
+        if (rivalStartersChanged) {
+            logRivalStarter(log);
         }
 
         if (settings.isTrainersForceFullyEvolved()) {
@@ -1081,6 +1104,38 @@ public class Randomizer {
             log.println("Set starter " + i + " to " + starter.fullName());
             i++;
         }
+        log.println();
+    }
+
+    private void logRivalStarter(final PrintStream log) {
+
+        switch(settings.getRivalStarterMod()) {
+            case CUSTOM:
+                log.println("--Custom Rival Starter--");
+                log.println(romHandler.getPickedRivalStarter().fullName());
+                break;
+            case COMPLETELY_RANDOM:
+                log.println("--Random Rival Starter--");
+                log.println(romHandler.getPickedRivalStarter().fullName());
+                break;
+            case RANDOM_WITH_TWO_EVOLUTIONS:
+                log.println("--Random 2-Evolution Rival Starter--");
+                log.println(romHandler.getPickedRivalStarter().fullName());
+                break;
+            case SAME:
+                log.println("--Rival Carries Starter Throughout Game--");
+                List<Pokemon> starters = romHandler.getPickedStarters();
+                int i = 1;
+                for (Pokemon starter: starters) {
+                    log.println("Set starter " + i + " to " + starter.fullName());
+                    i++;
+                }
+                break;
+            default:
+                break;
+        }
+
+
         log.println();
     }
 

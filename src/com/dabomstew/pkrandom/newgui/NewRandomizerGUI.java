@@ -94,9 +94,9 @@ public class NewRandomizerGUI {
     private JRadioButton spCustomRadioButton;
     private JRadioButton spRandomCompletelyRadioButton;
     private JRadioButton spRandomTwoEvosRadioButton;
-    private JComboBox<String> spComboBox1;
-    private JComboBox<String> spComboBox2;
-    private JComboBox<String> spComboBox3;
+    private JComboBox<ComboItem> spComboBox1;
+    private JComboBox<ComboItem> spComboBox2;
+    private JComboBox<ComboItem> spComboBox3;
     private JCheckBox spRandomizeStarterHeldItemsCheckBox;
     private JCheckBox spBanBadItemsCheckBox;
     private JRadioButton stpUnchangedRadioButton;
@@ -129,7 +129,6 @@ public class NewRandomizerGUI {
     private JCheckBox pmsForceGoodDamagingCheckBox;
     private JSlider pmsGuaranteedLevel1MovesSlider;
     private JSlider pmsForceGoodDamagingSlider;
-    private JCheckBox tpRivalCarriesStarterCheckBox;
     private JCheckBox tpSimilarStrengthCheckBox;
     private JCheckBox tpWeightTypesCheckBox;
     private JCheckBox tpDontUseLegendariesCheckBox;
@@ -305,6 +304,15 @@ public class NewRandomizerGUI {
     private JCheckBox igtOnlyRandomizeBannedCheckBox;
     private JCheckBox tpOnlyRandomizeBannedCheckBox;
     private JCheckBox tpNoBanRandomizeCheckBox;
+    private JPanel tpRivalStarterPanel;
+    private JRadioButton tpRivalCustomRadioButton;
+    private JRadioButton tpRivalRandomCompletelyRadioButton;
+    private JRadioButton tpRivalRandomTwoEvosRadioButton;
+    private JComboBox<ComboItem> tpRivalComboBox;
+    private JCheckBox tpRivalNoBanRandomizeCheckBox;
+    private JRadioButton tpRivalUnchangedRadioButton;
+    private JRadioButton tpRivalSameRadioButton;
+    private JCheckBox tpRivalAllowAltFormesCheckBox;
 
     private static JFrame frame;
 
@@ -535,6 +543,7 @@ public class NewRandomizerGUI {
                     igtOnlyRandomizeBannedCheckBox.setEnabled(currentRestrictions.ban_pokemon && !igtUnchangedRadioButton.isSelected());
                     tpOnlyRandomizeBannedCheckBox.setEnabled(currentRestrictions.ban_pokemon && !isTrainerSetting(0));
                     tpNoBanRandomizeCheckBox.setEnabled(currentRestrictions.ban_pokemon && !isTrainerSetting(0));
+                    tpRivalNoBanRandomizeCheckBox.setEnabled(currentRestrictions.ban_pokemon && !tpRivalUnchangedRadioButton.isSelected());
                 }
             }
         });
@@ -546,6 +555,11 @@ public class NewRandomizerGUI {
         tpBossTrainersItemsCheckBox.addActionListener(e -> enableOrDisableSubControls());
         tpImportantTrainersItemsCheckBox.addActionListener(e -> enableOrDisableSubControls());
         tpRegularTrainersItemsCheckBox.addActionListener(e -> enableOrDisableSubControls());
+        tpRivalCustomRadioButton.addActionListener(e -> enableOrDisableSubControls());
+        tpRivalRandomCompletelyRadioButton.addActionListener(e -> enableOrDisableSubControls());
+        tpRivalRandomTwoEvosRadioButton.addActionListener(e -> enableOrDisableSubControls());
+        tpRivalSameRadioButton.addActionListener(e -> enableOrDisableSubControls());
+        tpRivalUnchangedRadioButton.addActionListener(e ->enableOrDisableSubControls());
         totpUnchangedRadioButton.addActionListener(e -> enableOrDisableSubControls());
         totpRandomRadioButton.addActionListener(e -> enableOrDisableSubControls());
         totpRandomSimilarStrengthRadioButton.addActionListener(e -> enableOrDisableSubControls());
@@ -580,6 +594,7 @@ public class NewRandomizerGUI {
         ptRandomFollowEvolutionsRadioButton.addActionListener(e -> enableOrDisableSubControls());
         ptRandomCompletelyRadioButton.addActionListener(e -> enableOrDisableSubControls());
         spRandomizeStarterHeldItemsCheckBox.addActionListener(e -> enableOrDisableSubControls());
+        tpRivalNoBanRandomizeCheckBox.addActionListener(e -> enableOrDisableSubControls());
         tmLevelupMoveSanityCheckBox.addActionListener(e -> enableOrDisableSubControls());
         mtLevelupMoveSanityCheckBox.addActionListener(e -> enableOrDisableSubControls());
         noIrregularAltFormesCheckBox.addActionListener(e -> enableOrDisableSubControls());
@@ -987,6 +1002,9 @@ public class NewRandomizerGUI {
                     Settings.TweakForROMFeedback feedback = settings.tweakForRom(this.romHandler);
                     if (feedback.isChangedStarter() && settings.getStartersMod() == Settings.StartersMod.CUSTOM) {
                         JOptionPane.showMessageDialog(frame, bundle.getString("GUI.starterUnavailable"));
+                    }
+                    if (feedback.isChangedRivalStarter() && settings.getRivalStarterMod() == Settings.RivalStarterMod.CUSTOM) {
+                        JOptionPane.showMessageDialog(frame, bundle.getString("GUI.starterRivalUnavailable"));
                     }
                     this.restoreStateFromSettings(settings);
 
@@ -1542,9 +1560,9 @@ public class NewRandomizerGUI {
         spAllowAltFormesCheckBox.setSelected(settings.isAllowStarterAltFormes());
 
         int[] customStarters = settings.getCustomStarters();
-        spComboBox1.setSelectedIndex(customStarters[0] - 1);
-        spComboBox2.setSelectedIndex(customStarters[1] - 1);
-        spComboBox3.setSelectedIndex(customStarters[2] - 1);
+        spComboBox1.setSelectedIndex(customStarters[0]);
+        spComboBox2.setSelectedIndex(customStarters[1]);
+        spComboBox3.setSelectedIndex(customStarters[2]);
 
         peUnchangedRadioButton.setSelected(settings.getEvolutionsMod() == Settings.EvolutionsMod.UNCHANGED);
         peRandomRadioButton.setSelected(settings.getEvolutionsMod() == Settings.EvolutionsMod.RANDOM);
@@ -1575,7 +1593,6 @@ public class NewRandomizerGUI {
 
         tpSimilarStrengthCheckBox.setSelected(settings.isTrainersUsePokemonOfSimilarStrength());
         tpComboBox.setSelectedItem(trainerSettings.get(settings.getTrainersMod().ordinal()));
-        tpRivalCarriesStarterCheckBox.setSelected(settings.isRivalCarriesStarterThroughout());
         tpWeightTypesCheckBox.setSelected(settings.isTrainersMatchTypingDistribution());
         tpDontUseLegendariesCheckBox.setSelected(settings.isTrainersBlockLegendaries());
         tpNoEarlyWonderGuardCheckBox.setSelected(settings.isTrainersBlockEarlyWonderGuard());
@@ -1605,6 +1622,18 @@ public class NewRandomizerGUI {
 
         tpRandomShinyTrainerPokemonCheckBox.setSelected(settings.isShinyChance());
         tpBetterMovesetsCheckBox.setSelected(settings.isBetterTrainerMovesets());
+
+        tpRivalCustomRadioButton.setSelected(settings.getRivalStarterMod() == Settings.RivalStarterMod.CUSTOM);
+        tpRivalRandomCompletelyRadioButton.setSelected(settings.getRivalStarterMod() == Settings.RivalStarterMod.COMPLETELY_RANDOM);
+        tpRivalUnchangedRadioButton.setSelected(settings.getRivalStarterMod() == Settings.RivalStarterMod.UNCHANGED);
+        tpRivalRandomTwoEvosRadioButton.setSelected(settings.getRivalStarterMod() == Settings.RivalStarterMod.RANDOM_WITH_TWO_EVOLUTIONS);
+        tpRivalSameRadioButton.setSelected(settings.getRivalStarterMod() == Settings.RivalStarterMod.SAME);
+        tpRivalNoBanRandomizeCheckBox.setSelected(settings.isNoBanRandomizeRivalStarter());
+
+        tpRivalAllowAltFormesCheckBox.setSelected(settings.isAllowRivalStarterAltFormes());
+
+        int customRivalStarter = settings.getCustomRivalStarter();
+        tpRivalComboBox.setSelectedIndex(customRivalStarter);
 
         totpUnchangedRadioButton.setSelected(settings.getTotemPokemonMod() == Settings.TotemPokemonMod.UNCHANGED);
         totpRandomRadioButton.setSelected(settings.getTotemPokemonMod() == Settings.TotemPokemonMod.RANDOM);
@@ -1788,8 +1817,8 @@ public class NewRandomizerGUI {
         settings.setBanBadRandomStarterHeldItems(spBanBadItemsCheckBox.isSelected() && spBanBadItemsCheckBox.isVisible());
         settings.setAllowStarterAltFormes(spAllowAltFormesCheckBox.isSelected() && spAllowAltFormesCheckBox.isVisible());
 
-        int[] customStarters = new int[] { spComboBox1.getSelectedIndex() + 1,
-                spComboBox2.getSelectedIndex() + 1, spComboBox3.getSelectedIndex() + 1 };
+        int[] customStarters = new int[] { ((ComboItem)spComboBox1.getSelectedItem()).getValue(),
+                ((ComboItem)spComboBox2.getSelectedItem()).getValue(), ((ComboItem)spComboBox3.getSelectedItem()).getValue() };
         settings.setCustomStarters(customStarters);
 
         settings.setEvolutionsMod(peUnchangedRadioButton.isSelected(), peRandomRadioButton.isSelected(), peRandomEveryLevelRadioButton.isSelected());
@@ -1821,7 +1850,6 @@ public class NewRandomizerGUI {
                 isTrainerSetting(TRAINER_RANDOM_EVEN), isTrainerSetting(TRAINER_RANDOM_EVEN_MAIN),
                 isTrainerSetting(TRAINER_TYPE_THEMED), isTrainerSetting(TRAINER_TYPE_THEMED_ELITE4_GYMS));
         settings.setTrainersUsePokemonOfSimilarStrength(tpSimilarStrengthCheckBox.isSelected());
-        settings.setRivalCarriesStarterThroughout(tpRivalCarriesStarterCheckBox.isSelected());
         settings.setTrainersMatchTypingDistribution(tpWeightTypesCheckBox.isSelected());
         settings.setTrainersBlockLegendaries(tpDontUseLegendariesCheckBox.isSelected());
         settings.setTrainersBlockEarlyWonderGuard(tpNoEarlyWonderGuardCheckBox.isSelected());
@@ -1846,6 +1874,14 @@ public class NewRandomizerGUI {
         settings.setHighestLevelGetsItemsForTrainers(tpHighestLevelGetsItemCheckBox.isVisible() && tpHighestLevelGetsItemCheckBox.isSelected());
         settings.setOnlyRandomizeBannedTrainer(tpOnlyRandomizeBannedCheckBox.isEnabled() && tpOnlyRandomizeBannedCheckBox.isSelected());
         settings.setNoBanRandomizeTrainer(tpNoBanRandomizeCheckBox.isEnabled() && tpNoBanRandomizeCheckBox.isSelected());
+
+        settings.setRivalStarterMod(tpRivalUnchangedRadioButton.isSelected(), tpRivalCustomRadioButton.isSelected(), tpRivalRandomCompletelyRadioButton.isSelected(),
+                tpRivalRandomTwoEvosRadioButton.isSelected(), tpRivalSameRadioButton.isSelected());
+        settings.setNoBanRandomizeRivalStarter(tpRivalNoBanRandomizeCheckBox.isSelected() && tpRivalNoBanRandomizeCheckBox.isVisible());
+        settings.setAllowRivalStarterAltFormes(tpRivalAllowAltFormesCheckBox.isSelected() && tpRivalAllowAltFormesCheckBox.isVisible());
+
+        int customRivalStarter = ((ComboItem)tpRivalComboBox.getSelectedItem()).getValue();
+        settings.setCustomRivalStarter(customRivalStarter);
 
         settings.setTotemPokemonMod(totpUnchangedRadioButton.isSelected(), totpRandomRadioButton.isSelected(), totpRandomSimilarStrengthRadioButton.isSelected());
         settings.setAllyPokemonMod(totpAllyUnchangedRadioButton.isSelected(), totpAllyRandomRadioButton.isSelected(), totpAllyRandomSimilarStrengthRadioButton.isSelected());
@@ -2210,15 +2246,15 @@ public class NewRandomizerGUI {
         spComboBox1.setVisible(true);
         spComboBox1.setEnabled(false);
         spComboBox1.setSelectedIndex(0);
-        spComboBox1.setModel(new DefaultComboBoxModel<>(new String[] { "--" }));
+        spComboBox1.setModel(new DefaultComboBoxModel<>());
         spComboBox2.setVisible(true);
         spComboBox2.setEnabled(false);
         spComboBox2.setSelectedIndex(0);
-        spComboBox2.setModel(new DefaultComboBoxModel<>(new String[] { "--" }));
+        spComboBox2.setModel(new DefaultComboBoxModel<>());
         spComboBox3.setVisible(true);
         spComboBox3.setEnabled(false);
         spComboBox3.setSelectedIndex(0);
-        spComboBox3.setModel(new DefaultComboBoxModel<>(new String[] { "--" }));
+        spComboBox3.setModel(new DefaultComboBoxModel<>());
         spRandomizeStarterHeldItemsCheckBox.setVisible(true);
         spRandomizeStarterHeldItemsCheckBox.setEnabled(false);
         spRandomizeStarterHeldItemsCheckBox.setSelected(false);
@@ -2346,9 +2382,6 @@ public class NewRandomizerGUI {
         tpComboBox.setVisible(true);
         tpComboBox.setEnabled(false);
         tpComboBox.setModel(new DefaultComboBoxModel<>(new String[] { "Unchanged" }));
-        tpRivalCarriesStarterCheckBox.setVisible(true);
-        tpRivalCarriesStarterCheckBox.setEnabled(false);
-        tpRivalCarriesStarterCheckBox.setSelected(false);
         tpSimilarStrengthCheckBox.setVisible(true);
         tpSimilarStrengthCheckBox.setEnabled(false);
         tpSimilarStrengthCheckBox.setSelected(false);
@@ -2446,6 +2479,27 @@ public class NewRandomizerGUI {
         tpBetterMovesetsCheckBox.setVisible(true);
         tpBetterMovesetsCheckBox.setEnabled(false);
         tpBetterMovesetsCheckBox.setSelected(false);
+        tpRivalCustomRadioButton.setVisible(true);
+        tpRivalCustomRadioButton.setEnabled(false);
+        tpRivalCustomRadioButton.setSelected(false);
+        tpRivalRandomCompletelyRadioButton.setVisible(true);
+        tpRivalRandomCompletelyRadioButton.setEnabled(false);
+        tpRivalRandomCompletelyRadioButton.setSelected(false);
+        tpRivalRandomTwoEvosRadioButton.setVisible(true);
+        tpRivalRandomTwoEvosRadioButton.setEnabled(false);
+        tpRivalRandomTwoEvosRadioButton.setSelected(false);
+        tpRivalSameRadioButton.setVisible(true);
+        tpRivalSameRadioButton.setEnabled(false);
+        tpRivalSameRadioButton.setSelected(false);
+        tpRivalComboBox.setVisible(true);
+        tpRivalComboBox.setEnabled(false);
+        tpRivalComboBox.setSelectedIndex(0);
+        tpRivalNoBanRandomizeCheckBox.setVisible(true);
+        tpRivalNoBanRandomizeCheckBox.setEnabled(false);
+        tpRivalNoBanRandomizeCheckBox.setSelected(false);
+        tpRivalAllowAltFormesCheckBox.setVisible(true);
+        tpRivalAllowAltFormesCheckBox.setEnabled(false);
+        tpRivalAllowAltFormesCheckBox.setSelected(false);
         totpPanel.setVisible(true);
         totpAllyPanel.setVisible(true);
         totpAuraPanel.setVisible(true);
@@ -2945,6 +2999,24 @@ public class NewRandomizerGUI {
             tpRandomShinyTrainerPokemonCheckBox.setVisible(pokemonGeneration >= 7);
             tpBetterMovesetsCheckBox.setVisible(pokemonGeneration >= 3);
             tpBetterMovesetsCheckBox.setEnabled(pokemonGeneration >= 3);
+
+            tpRivalUnchangedRadioButton.setEnabled(true);
+            tpRivalUnchangedRadioButton.setSelected(true);
+
+            tpRivalCustomRadioButton.setEnabled(true);
+            if (!peRandomEveryLevelRadioButton.isSelected() && (!spUnchangedRadioButton.isSelected() || !isTrainerSetting(TRAINER_UNCHANGED))) {
+                tpRivalSameRadioButton.setEnabled(true);
+            } else {
+                tpRivalSameRadioButton.setEnabled(false);
+                tpRivalSameRadioButton.setSelected(false);
+            }
+            tpRivalRandomCompletelyRadioButton.setEnabled(true);
+            tpRivalRandomTwoEvosRadioButton.setEnabled(true);
+            tpRivalAllowAltFormesCheckBox.setVisible(romHandler.hasStarterAltFormes());
+
+            populateDropdowns();
+
+            tpRivalNoBanRandomizeCheckBox.setEnabled(!tpRivalUnchangedRadioButton.isSelected() && (limitPokemonCheckBox.isSelected() && currentRestrictions != null && currentRestrictions.ban_pokemon));
 
             totpPanel.setVisible(pokemonGeneration == 7);
             if (totpPanel.isVisible()) {
@@ -3508,10 +3580,10 @@ public class NewRandomizerGUI {
         }
 
         if (!peRandomEveryLevelRadioButton.isSelected() && (!spUnchangedRadioButton.isSelected() || !isTrainerSetting(TRAINER_UNCHANGED))) {
-            tpRivalCarriesStarterCheckBox.setEnabled(true);
+            tpRivalSameRadioButton.setEnabled(true);
         } else {
-            tpRivalCarriesStarterCheckBox.setEnabled(false);
-            tpRivalCarriesStarterCheckBox.setSelected(false);
+            tpRivalSameRadioButton.setEnabled(false);
+            tpRivalSameRadioButton.setSelected(false);
         }
 
         if (isTrainerSetting(TRAINER_TYPE_THEMED)) {
@@ -3527,6 +3599,18 @@ public class NewRandomizerGUI {
             tpEliteFourUniquePokemonSpinner.setEnabled(false);
             tpEliteFourUniquePokemonSpinner.setValue(1);
         }
+
+        boolean tpRivalCustomStatus = tpRivalCustomRadioButton.isSelected();
+        tpRivalComboBox.setEnabled(tpRivalCustomStatus);
+
+        if (tpRivalUnchangedRadioButton.isSelected()) {
+            tpRivalAllowAltFormesCheckBox.setEnabled(false);
+            tpRivalAllowAltFormesCheckBox.setSelected(false);
+        } else {
+            tpRivalAllowAltFormesCheckBox.setEnabled(true);
+        }
+
+        tpRivalNoBanRandomizeCheckBox.setEnabled(!tpRivalUnchangedRadioButton.isSelected() && (limitPokemonCheckBox.isSelected() && currentRestrictions != null && currentRestrictions.ban_pokemon));
 
         if (!totpUnchangedRadioButton.isSelected() || !totpAllyUnchangedRadioButton.isSelected()) {
             totpAllowAltFormesCheckBox.setEnabled(true);
@@ -3835,10 +3919,12 @@ public class NewRandomizerGUI {
                                 .filter(pk -> pk == null || !pk.actuallyCosmetic)
                                 .collect(Collectors.toList()) :
                         romHandler.getPokemon();
-        String[] pokeNames = new String[allPokes.size()];
-        pokeNames[0] = "Random";
+        ComboItem[] pokeNames = new ComboItem[allPokes.size()];
+        pokeNames[0] = new ComboItem(0, "Random");
         for (int i = 1; i < allPokes.size(); i++) {
-            pokeNames[i] = allPokes.get(i).fullName();
+            Pokemon poke = allPokes.get(i);
+
+            pokeNames[i] = new ComboItem(i, poke.fullName());
 
         }
 
@@ -3850,6 +3936,8 @@ public class NewRandomizerGUI {
             spComboBox3.setModel(new DefaultComboBoxModel<>(pokeNames));
             spComboBox3.setSelectedIndex(allPokes.indexOf(currentStarters.get(2)));
         }
+        tpRivalComboBox.setModel(new DefaultComboBoxModel<>(pokeNames));
+        tpRivalComboBox.setSelectedIndex(allPokes.indexOf(currentStarters.get(0)));
 
         String[] baseStatGenerationNumbers = new String[Math.min(4, GlobalConstants.HIGHEST_POKEMON_GEN - romHandler.generationOfPokemon())];
         int j = Math.max(6, romHandler.generationOfPokemon() + 1);

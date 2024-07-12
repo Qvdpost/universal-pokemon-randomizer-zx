@@ -5,6 +5,7 @@ import com.dabomstew.pkrandom.pokemon.*;
 import com.dabomstew.pkrandom.romhandlers.AbstractRomHandler;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PokemonPool {
     private AbstractRomHandler handler;
@@ -15,10 +16,14 @@ public class PokemonPool {
     public List<Pokemon> noLegendaryList, onlyLegendaryList, ultraBeastList;
     public List<Pokemon> noLegendaryListInclFormes, onlyLegendaryListInclFormes;
     public List<Pokemon> noLegendaryAltsList, onlyLegendaryAltsList;
+    private List<Pokemon> twoEvoPokes;
+    private List<Pokemon> twoEvoPokesInclFormes;
+
 
 
     public PokemonPool(AbstractRomHandler handler) {
         this.handler = handler;
+        this.mainPokemonList = new ArrayList<Pokemon>();
     }
 
 
@@ -36,104 +41,141 @@ public class PokemonPool {
             }
         }
 
-        mainPokemonList = this.allPokemonWithoutNull();
-        mainPokemonListInclFormes = this.allPokemonInclFormesWithoutNull();
-        altFormesList = this.handler.getAltFormes();
-        megaEvolutionsList = this.handler.getMegaEvolutions();
+        this.mainPokemonList = this.allPokemonWithoutNull();
+        this.mainPokemonListInclFormes = this.allPokemonInclFormesWithoutNull();
+        this.altFormesList = this.handler.getAltFormes();
+        this.megaEvolutionsList = this.handler.getMegaEvolutions();
         if (restrictions != null) {
-            mainPokemonList = new ArrayList<>();
-            mainPokemonListInclFormes = new ArrayList<>();
-            megaEvolutionsList = new ArrayList<>();
+            this.mainPokemonList = new ArrayList<>();
+            this.mainPokemonListInclFormes = new ArrayList<>();
+            this.megaEvolutionsList = new ArrayList<>();
             List<Pokemon> allPokemon = this.handler.getPokemon();
 
             if (restrictions.allow_gen1) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.bulbasaur, Species.mew);
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.bulbasaur, Species.mew);
             }
 
             if (restrictions.allow_gen2 && allPokemon.size() > Gen2Constants.pokemonCount) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.chikorita, Species.celebi);
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.chikorita, Species.celebi);
             }
 
             if (restrictions.allow_gen3 && allPokemon.size() > Gen3Constants.pokemonCount) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.treecko, Species.deoxys);
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.treecko, Species.deoxys);
             }
 
             if (restrictions.allow_gen4 && allPokemon.size() > Gen4Constants.pokemonCount) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.turtwig, Species.arceus);
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.turtwig, Species.arceus);
             }
 
             if (restrictions.allow_gen5 && allPokemon.size() > Gen5Constants.pokemonCount) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.victini, Species.genesect);
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.victini, Species.genesect);
             }
 
             if (restrictions.allow_gen6 && allPokemon.size() > Gen6Constants.pokemonCount) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.chespin, Species.volcanion);
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.chespin, Species.volcanion);
             }
 
             int maxGen7SpeciesID = this.handler.isSM ? Species.marshadow : Species.zeraora;
             if (restrictions.allow_gen7 && allPokemon.size() > maxGen7SpeciesID) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.rowlet, maxGen7SpeciesID);
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.rowlet, maxGen7SpeciesID);
             }
 
             // If the user specified it, add all the evolutionary relatives for everything
             // in the mainPokemonList
             if (restrictions.allow_evolutionary_relatives) {
-                addEvolutionaryRelatives(mainPokemonList);
+                addEvolutionaryRelatives(this.mainPokemonList);
             }
 
             // Now that mainPokemonList has all the selected Pokemon, update
             // mainPokemonListInclFormes too
-            addAllPokesInclFormes(mainPokemonList, mainPokemonListInclFormes);
+            addAllPokesInclFormes(this.mainPokemonList, this.mainPokemonListInclFormes);
 
             if (restrictions.ban_pokemon) {
-                removeBannedPokemon(mainPokemonList, allPokemon, settings.getBannedPokemon());
+                removeBannedPokemon(this.mainPokemonList, allPokemon, settings.getBannedPokemon());
             }
 
             if (restrictions.ban_pokemon) {
-                removeBannedPokemon(mainPokemonListInclFormes, this.handler.getPokemonInclFormes(), settings.getBannedPokemon());
+                removeBannedPokemon(this.mainPokemonListInclFormes, this.handler.getPokemonInclFormes(), settings.getBannedPokemon());
             }
 
             // Populate megaEvolutionsList with all of the mega evolutions that exist in the
             // pool
             List<MegaEvolution> allMegaEvolutions = this.handler.getMegaEvolutions();
             for (MegaEvolution megaEvo : allMegaEvolutions) {
-                if (mainPokemonListInclFormes.contains(megaEvo.to)) {
-                    megaEvolutionsList.add(megaEvo);
+                if (this.mainPokemonListInclFormes.contains(megaEvo.to)) {
+                    this.megaEvolutionsList.add(megaEvo);
                 }
             }
         }
 
-        noLegendaryList = new ArrayList<>();
-        noLegendaryListInclFormes = new ArrayList<>();
-        onlyLegendaryList = new ArrayList<>();
-        onlyLegendaryListInclFormes = new ArrayList<>();
-        noLegendaryAltsList = new ArrayList<>();
-        onlyLegendaryAltsList = new ArrayList<>();
-        ultraBeastList = new ArrayList<>();
+        this.noLegendaryList = new ArrayList<>();
+        this.noLegendaryListInclFormes = new ArrayList<>();
+        this.onlyLegendaryList = new ArrayList<>();
+        this.onlyLegendaryListInclFormes = new ArrayList<>();
+        this.noLegendaryAltsList = new ArrayList<>();
+        this.onlyLegendaryAltsList = new ArrayList<>();
+        this.ultraBeastList = new ArrayList<>();
 
-        for (Pokemon p : mainPokemonList) {
+        for (Pokemon p : this.mainPokemonList) {
             if (p.isLegendary()) {
-                onlyLegendaryList.add(p);
+                this.onlyLegendaryList.add(p);
             } else if (p.isUltraBeast()) {
-                ultraBeastList.add(p);
+                this.ultraBeastList.add(p);
             } else {
-                noLegendaryList.add(p);
+                this.noLegendaryList.add(p);
             }
         }
-        for (Pokemon p : mainPokemonListInclFormes) {
+        for (Pokemon p : this.mainPokemonListInclFormes) {
             if (p.isLegendary()) {
-                onlyLegendaryListInclFormes.add(p);
-            } else if (!ultraBeastList.contains(p)) {
-                noLegendaryListInclFormes.add(p);
+                this.onlyLegendaryListInclFormes.add(p);
+            } else if (!this.ultraBeastList.contains(p)) {
+                this.noLegendaryListInclFormes.add(p);
             }
         }
-        for (Pokemon f : altFormesList) {
+        for (Pokemon f : this.altFormesList) {
             if (f.isLegendary()) {
-                onlyLegendaryAltsList.add(f);
+                this.onlyLegendaryAltsList.add(f);
             } else {
-                noLegendaryAltsList.add(f);
+                this.noLegendaryAltsList.add(f);
             }
         }
+
+        // Prepare the list
+        this.twoEvoPokes = new ArrayList<Pokemon>();
+        List<Pokemon> allPokes = this.mainPokemonList;
+        for (Pokemon pk : allPokes) {
+            if (pk != null && pk.evolutionsTo.size() == 0 && pk.evolutionsFrom.size() > 0) {
+                // Potential candidate
+                for (Evolution ev : pk.evolutionsFrom) {
+                    // If any of the targets here evolve, the original
+                    // Pokemon has 2+ stages.
+                    if (ev.to.evolutionsFrom.size() > 0) {
+                        this.twoEvoPokes.add(pk);
+                        break;
+                    }
+                }
+            }
+        }
+
+        this.twoEvoPokesInclFormes = new ArrayList<Pokemon>();
+        List<Pokemon> allPokesInclFormes = this.mainPokemonListInclFormes
+                .stream()
+                .filter(pk -> pk == null || !pk.actuallyCosmetic)
+                .collect(Collectors.toList());
+        for (Pokemon pk : allPokesInclFormes) {
+            if (pk != null && pk.evolutionsTo.size() == 0 && pk.evolutionsFrom.size() > 0) {
+                // Potential candidate
+                for (Evolution ev : pk.evolutionsFrom) {
+                    // If any of the targets here evolve, the original
+                    // Pokemon has 2+ stages.
+                    if (ev.to.evolutionsFrom.size() > 0) {
+                        this.twoEvoPokesInclFormes.add(pk);
+                        break;
+                    }
+                }
+            }
+        }
+
     }
 
     private void addPokesFromRange(List<Pokemon> pokemonPool, List<Pokemon> allPokemon, int range_min, int range_max) {
@@ -340,5 +382,26 @@ public class PokemonPool {
         }
         recStack.remove(pk);
         return false;
+    }
+
+    public Pokemon random2EvosPokemon(Random random, boolean allowAltFormes) {
+        List<Pokemon> basicPokes = allowAltFormes ? this.twoEvoPokesInclFormes : this.twoEvoPokes;
+        if (basicPokes.isEmpty()) {
+            return randomPokemon(random, allowAltFormes);
+        }
+
+        return basicPokes.get(random.nextInt(basicPokes.size()));
+    }
+
+    public Pokemon randomPokemon(Random random, Boolean allowAltFormes) {
+        return allowAltFormes ? this.mainPokemonListInclFormes.get(random.nextInt(this.mainPokemonListInclFormes.size())) : this.mainPokemonList.get(random.nextInt(this.mainPokemonList.size()));
+    }
+
+    public Pokemon randomNonLegendaryPokemon(Random random, Boolean allowAltFormes) {
+        return allowAltFormes ? this.noLegendaryListInclFormes.get(random.nextInt(this.noLegendaryListInclFormes.size())) : this.noLegendaryList.get(random.nextInt(this.noLegendaryList.size()));
+    }
+
+    public Pokemon randomLegendaryPokemon(Random random, Boolean allowAltFormes) {
+        return allowAltFormes ? this.onlyLegendaryListInclFormes.get(random.nextInt(this.onlyLegendaryListInclFormes.size())) : this.onlyLegendaryList.get(random.nextInt(this.onlyLegendaryList.size()));
     }
 }

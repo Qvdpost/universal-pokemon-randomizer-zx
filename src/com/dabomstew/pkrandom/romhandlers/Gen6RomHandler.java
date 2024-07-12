@@ -3395,9 +3395,9 @@ public class Gen6RomHandler extends Abstract3DSRomHandler {
 
             // Pick a random Pokemon, including formes
 
-            Pokemon introPokemon = randomPokemonInclFormes();
+            Pokemon introPokemon = this.getAllPokemonPool().randomPokemon(random, true);
             while (introPokemon.actuallyCosmetic) {
-                introPokemon = randomPokemonInclFormes();
+                introPokemon = this.getAllPokemonPool().randomPokemon(random, true);
             }
             int introPokemonNum = introPokemon.number;
             int introPokemonForme = 0;
