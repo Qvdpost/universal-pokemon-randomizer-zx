@@ -2019,11 +2019,8 @@ public abstract class AbstractRomHandler implements RomHandler {
             }
         } else {
             pickedRivalStarter = pokePool.getPokemon(customRivalStarter);
-            while ((pickedStarters != null && pickedStarters.contains(pickedRivalStarter))
-                    || banned.contains(pickedRivalStarter) || pickedRivalStarter.actuallyCosmetic) {
-                pickedRivalStarter = pokePool.randomPokemon(random, allowAltFormes);
-            }
         }
+
         setRivalStarter(pickedRivalStarter);
     }
     @Override
@@ -3978,6 +3975,7 @@ public abstract class AbstractRomHandler implements RomHandler {
 
         List<Pokemon> banned = getBannedFormesForPlayerPokemon();
         pickedStarters = new ArrayList<>();
+
         if (abilitiesUnchanged) {
             List<Pokemon> abilityDependentFormes = getAbilityDependentFormes();
             banned.addAll(abilityDependentFormes);
@@ -3987,61 +3985,41 @@ public abstract class AbstractRomHandler implements RomHandler {
         }
         // loop to add chosen pokemon to banned, preventing it from being a random
         // option.
-        for (int i = 0; i < customStarters.length; i = i + 1) {
-            if (!(customStarters[i] == 0)) {
-                banned.add(allPokePool.getPokemon(customStarters[i]));
+        for (int customStarter : customStarters) {
+            if (!(customStarter == 0)) {
+                banned.add(allPokePool.getPokemon(customStarter));
             }
-        }
-        if (customStarters[0] == 0) {
-            Pokemon pkmn = pokePool.randomPokemon(random, allowAltFormes);
-            while (pickedStarters.contains(pkmn) || banned.contains(pkmn) || pkmn.actuallyCosmetic) {
-                pkmn = pokePool.randomPokemon(random, allowAltFormes);
-            }
-            pickedStarters.add(pkmn);
-        } else {
-            Pokemon pkmn1 = allPokePool.getPokemon(customStarters[0]);
-            pickedStarters.add(pkmn1);
-        }
-        if (customStarters[1] == 0) {
-            Pokemon pkmn = pokePool.randomPokemon(random, allowAltFormes);
-            while (pickedStarters.contains(pkmn) || banned.contains(pkmn) || pkmn.actuallyCosmetic) {
-                pkmn = pokePool.randomPokemon(random, allowAltFormes);
-            }
-            pickedStarters.add(pkmn);
-        } else {
-            Pokemon pkmn2 = allPokePool.getPokemon(customStarters[1]);
-            pickedStarters.add(pkmn2);
         }
 
-        if (isYellow()) {
-            setStarters(pickedStarters);
-        } else {
-            if (customStarters[2] == 0) {
-                Pokemon pkmn = pokePool.randomPokemon(random, allowAltFormes);
+        for (int i = 0; i < Math.min(starterCount(), 3); i ++) {
+            Pokemon pkmn;
+            if (customStarters[i] == 0) {
+                pkmn = pokePool.randomPokemon(random, allowAltFormes);
                 while (pickedStarters.contains(pkmn) || banned.contains(pkmn) || pkmn.actuallyCosmetic) {
                     pkmn = pokePool.randomPokemon(random, allowAltFormes);
                 }
-                pickedStarters.add(pkmn);
             } else {
-                Pokemon pkmn3 = allPokePool.getPokemon(customStarters[2]);
-                pickedStarters.add(pkmn3);
+                pkmn = allPokePool.getPokemon(customStarters[i]);
             }
-            if (starterCount() > 3) {
-                for (int i = 3; i < starterCount(); i++) {
-                    int tries = 0;
-                    Pokemon pkmn = pokePool.random2EvosPokemon(random, allowAltFormes);
-                    while (tries < 1000 && (pickedStarters.contains(pkmn) || banned.contains(pkmn))) {
-                        if (settings.getCurrentRestrictions().ban_pokemon) {
-                            tries++;
-                        }
-                        pkmn = pokePool.random2EvosPokemon(random, allowAltFormes);
+            pickedStarters.add(pkmn);
+        }
+
+        if (starterCount() > 3) {
+            for (int i = 3; i < starterCount(); i++) {
+                int tries = 0;
+                Pokemon pkmn = pokePool.random2EvosPokemon(random, allowAltFormes);
+                while (tries < 1000 && (pickedStarters.contains(pkmn) || banned.contains(pkmn))) {
+                    // If too many pokemon are banned to satisfy the condition this breaks the infinite loop.
+                    if (settings.getCurrentRestrictions().ban_pokemon) {
+                        tries++;
                     }
-                    pickedStarters.add(pkmn);
+                    pkmn = pokePool.random2EvosPokemon(random, allowAltFormes);
                 }
-                setStarters(pickedStarters);
-            } else {
-                setStarters(pickedStarters);
+                pickedStarters.add(pkmn);
             }
+            setStarters(pickedStarters);
+        } else {
+            setStarters(pickedStarters);
         }
     }
 

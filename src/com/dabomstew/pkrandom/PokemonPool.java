@@ -211,21 +211,25 @@ public class PokemonPool {
 
     private void addAllPokesInclFormes(List<Pokemon> pokemonPool, List<Pokemon> pokemonPoolInclFormes) {
         List<Pokemon> altFormes = this.handler.getAltFormes();
-        for (int i = 0; i < pokemonPool.size(); i++) {
-            Pokemon currentPokemon = pokemonPool.get(i);
+        Set<Integer> pokemonNumbers = new HashSet<>();
+
+        for (Pokemon currentPokemon : pokemonPool) {
             if (!pokemonPoolInclFormes.contains(currentPokemon)) {
                 pokemonPoolInclFormes.add(currentPokemon);
-            }
-            for (int j = 0; j < altFormes.size(); j++) {
-                Pokemon potentialAltForme = altFormes.get(j);
-                if (potentialAltForme.baseForme != null
-                        && potentialAltForme.baseForme.number == currentPokemon.number) {
-                    pokemonPoolInclFormes.add(potentialAltForme);
-                } else if (potentialAltForme.formeNumber == 0) {
-                    pokemonPoolInclFormes.add(potentialAltForme);
-                }
+                pokemonNumbers.add(currentPokemon.number);
             }
         }
+
+        for (Pokemon potentialAltForme : altFormes) {
+            if (potentialAltForme.baseForme != null
+                    && pokemonNumbers.contains(potentialAltForme.baseForme.number)) {
+                pokemonPoolInclFormes.add(potentialAltForme);
+            } else if (potentialAltForme.formeNumber == 0) {
+                pokemonPoolInclFormes.add(potentialAltForme);
+            }
+        }
+
+
     }
 
     public Pokemon getPokemon(Integer pokeId) {

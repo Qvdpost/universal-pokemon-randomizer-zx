@@ -908,21 +908,29 @@ public class Settings {
         settings.setOnlyRandomizeBannedTrainer(restoreState(data[51], 3));
         settings.setNoBanRandomizeTrainer(restoreState(data[51], 4));
 
-        settings.setRivalStarterMod(restoreEnum(RivalStarterMod.class, data[52],
-                2, // UNCHANGED
-                0, // CUSTOM
-                1, // COMPLETELY_RANDOM
-                3, // RANDOM_WITH_TWO_EVOLUTIONS
-                4 // RIVAL CARRIES STARTER THROUGH GAME
-        ));
+        try {
+            settings.setRivalStarterMod(restoreEnum(RivalStarterMod.class, data[52],
+                    2, // UNCHANGED
+                    0, // CUSTOM
+                    1, // COMPLETELY_RANDOM
+                    3, // RANDOM_WITH_TWO_EVOLUTIONS
+                    4 // RIVAL CARRIES STARTER THROUGH GAME
+            ));
+        } catch (IllegalStateException e) {
+            settings.setRivalStarterMod(RivalStarterMod.UNCHANGED);
+        }
         settings.setNoBanRandomizeRivalStarter(restoreState(data[52], 5));
         settings.setAllowRivalStarterAltFormes(restoreState(data[52],6));
 
         settings.setCustomRivalStarter(FileFunctions.read2ByteInt(data, 53));
 
-        int romNameLength = data[LENGTH_OF_SETTINGS_DATA] & 0xFF;
-        String romName = new String(data, LENGTH_OF_SETTINGS_DATA + 1, romNameLength, "US-ASCII");
-        settings.setRomName(romName);
+        try {
+            int romNameLength = data[LENGTH_OF_SETTINGS_DATA] & 0xFF;
+            String romName = new String(data, LENGTH_OF_SETTINGS_DATA + 1, romNameLength, "US-ASCII");
+            settings.setRomName(romName);
+        } catch (StringIndexOutOfBoundsException e) {
+            throw new StringIndexOutOfBoundsException("Unsupported length of settings data in input string. Old version?");
+        }
 
         return settings;
     }

@@ -1021,7 +1021,7 @@ public class NewRandomizerGUI {
             } catch (UnsupportedOperationException ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(frame, ex.getMessage());
-            } catch (IllegalArgumentException ex) {
+            } catch (IllegalArgumentException | StringIndexOutOfBoundsException ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(frame, bundle.getString("GUI.invalidSettingsFile"));
             } catch (IOException ex) {
@@ -3925,8 +3925,7 @@ public class NewRandomizerGUI {
         for (int i = 1; i < allPokes.size(); i++) {
             Pokemon poke = allPokes.get(i);
 
-            pokeNames[i] = new ComboItem(i, poke.fullName());
-
+            pokeNames[i] = new ComboItem(poke.number, poke.fullName());
         }
 
         spComboBox1.setModel(new DefaultComboBoxModel<>(pokeNames));
