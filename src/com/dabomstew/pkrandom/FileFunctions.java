@@ -104,6 +104,13 @@ public class FileFunctions {
         return bnd;
     }
 
+    public static BannedMoveSet getBannedMoves() throws IOException {
+        InputStream is = openConfig(SysConstants.bannedMovesFile);
+        BannedMoveSet bnd = new BannedMoveSet(is);
+        is.close();
+        return bnd;
+    }
+
     public static byte[] openPokemonIcon(String filename) throws IOException {
         byte[] bytes = new byte[] {};
         try {

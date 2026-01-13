@@ -343,6 +343,7 @@ public class NewRandomizerGUI {
     private JPopupMenu settingsMenu;
     private JMenuItem customNamesEditorMenuItem;
     private JMenuItem bannedPokemonEditorMenuItem;
+    private JMenuItem bannedMoveEditorMenuItem;
     private JMenuItem applyGameUpdateMenuItem;
     private JMenuItem removeGameUpdateMenuItem;
     private JMenuItem loadGetSettingsMenuItem;
@@ -522,6 +523,7 @@ public class NewRandomizerGUI {
         settingsButton.addActionListener(e -> settingsMenu.show(settingsButton,0,settingsButton.getHeight()));
         customNamesEditorMenuItem.addActionListener(e -> new CustomNamesEditorDialog(frame));
         bannedPokemonEditorMenuItem.addActionListener(e -> new BannedPokemonEditorDialog(frame, romHandler));
+        bannedMoveEditorMenuItem.addActionListener(e -> new BannedMoveEditorDialog(frame, romHandler));
         applyGameUpdateMenuItem.addActionListener(e -> applyGameUpdateMenuItemActionPerformed());
         removeGameUpdateMenuItem.addActionListener(e -> removeGameUpdateMenuItemActionPerformed());
         loadGetSettingsMenuItem.addActionListener(e -> loadGetSettingsMenuItemActionPerformed());
@@ -742,6 +744,10 @@ public class NewRandomizerGUI {
         bannedPokemonEditorMenuItem = new JMenuItem();
         bannedPokemonEditorMenuItem.setText(bundle.getString("GUI.bannedPokemonEditorMenuItem.text"));
         settingsMenu.add(bannedPokemonEditorMenuItem);
+
+        bannedMoveEditorMenuItem = new JMenuItem();
+        bannedMoveEditorMenuItem.setText(bundle.getString("GUI.bannedMoveEditorMenuItem.text"));
+        settingsMenu.add(bannedMoveEditorMenuItem);
 
         loadGetSettingsMenuItem = new JMenuItem();
         loadGetSettingsMenuItem.setText(bundle.getString("GUI.loadGetSettingsMenuItem.text"));
@@ -978,7 +984,8 @@ public class NewRandomizerGUI {
         try {
             CustomNamesSet cns = FileFunctions.getCustomNames();
             BannedPokemonSet bnd = FileFunctions.getBannedPokemon();
-            performRandomization(fh.getAbsolutePath(), seed, cns, bnd, outputType == SaveType.DIRECTORY);
+            BannedMoveSet bnm = FileFunctions.getBannedMoves();
+            performRandomization(fh.getAbsolutePath(), seed, cns, bnd, bnm, outputType == SaveType.DIRECTORY);
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(frame, bundle.getString("GUI.cantLoadPresetFiles"));
         }
@@ -1052,8 +1059,8 @@ public class NewRandomizerGUI {
         }
     }
 
-    private void performRandomization(final String filename, final long seed, CustomNamesSet customNames, BannedPokemonSet bannedPokemon, boolean saveAsDirectory) {
-        final Settings settings = createSettingsFromState(customNames, bannedPokemon);
+    private void performRandomization(final String filename, final long seed, CustomNamesSet customNames, BannedPokemonSet bannedPokemon, BannedMoveSet bannedMoves, boolean saveAsDirectory) {
+        final Settings settings = createSettingsFromState(customNames, bannedPokemon, bannedMoves);
         final boolean raceMode = settings.isRaceMode();
         final boolean batchRandomization = batchRandomizationSettings.isBatchRandomizationEnabled() && !presetMode;
         // Setup verbose log
@@ -1254,7 +1261,7 @@ public class NewRandomizerGUI {
                 // Apply the seed we were given
                 RandomSource.seed(seed);
                 presetMode = true;
-                performRandomization(fh.getAbsolutePath(), seed, pld.getCustomNames(), pld.getBannedPokemon(), outputType == SaveType.DIRECTORY);
+                performRandomization(fh.getAbsolutePath(), seed, pld.getCustomNames(), pld.getBannedPokemon(), pld.getBannedMoves(), outputType == SaveType.DIRECTORY);
             }
         }
 
@@ -1765,8 +1772,11 @@ public class NewRandomizerGUI {
         this.enableOrDisableSubControls();
     }
 
-    private Settings createSettingsFromState(CustomNamesSet customNames, BannedPokemonSet bannedPokemon) {
+    private Settings createSettingsFromState(CustomNamesSet customNames, BannedPokemonSet bannedPokemon, BannedMoveSet bannedMoves) {
         Settings settings = new Settings();
+        settings.setCustomNames(customNames);
+        settings.setBannedPokemon(bannedPokemon);
+        settings.setBannedMoves(bannedMoves);
         settings.setRomName(this.romHandler.getROMName());
 
         settings.setLimitPokemon(limitPokemonCheckBox.isSelected() && currentRestrictions != null);
@@ -1982,7 +1992,7 @@ public class NewRandomizerGUI {
     }
 
     private Settings getCurrentSettings() throws IOException {
-        return createSettingsFromState(FileFunctions.getCustomNames(), FileFunctions.getBannedPokemon());
+        return createSettingsFromState(FileFunctions.getCustomNames(), FileFunctions.getBannedPokemon(), FileFunctions.getBannedMoves());
     }
 
     private void attemptToLogException(Exception ex, String baseMessageKey, String noLogMessageKey,
@@ -2046,10 +2056,10 @@ public class NewRandomizerGUI {
         }
     }
 
-    public String getValidRequiredROMName(String config, CustomNamesSet customNames, BannedPokemonSet bannedPokemon)
+    public String getValidRequiredROMName(String config, CustomNamesSet customNames, BannedPokemonSet bannedPokemon, BannedMoveSet bannedMoves)
             throws UnsupportedEncodingException, InvalidSupplementFilesException {
         try {
-            Utils.validatePresetSupplementFiles(config, customNames, bannedPokemon);
+            Utils.validatePresetSupplementFiles(config, customNames, bannedPokemon, bannedMoves);
         } catch (InvalidSupplementFilesException e) {
             switch (e.getType()) {
                 case CUSTOM_NAMES:
@@ -2057,6 +2067,9 @@ public class NewRandomizerGUI {
                     break;
                 case BANNED_POKEMON:
                     JOptionPane.showMessageDialog(null, bundle.getString("GUI.presetDifferentBannedPokemon"));
+                    break;
+                case BANNED_MOVES:
+                    JOptionPane.showMessageDialog(null, "Can't use this preset because you have a different set of banned Moves to the creator.");
                     break;
                 default:
                     throw e;
@@ -4035,6 +4048,15 @@ public class NewRandomizerGUI {
         }
 
         haveCheckedBannedPokemon = true;
+
+        try {
+            File currentFile = new File(SysConstants.ROOT_PATH + SysConstants.bannedMovesFile);
+            if (currentFile.exists()) {
+                FileFunctions.getBannedMoves();
+            }
+        } catch (IOException e) {
+            // For now just ignore if banned moves is invalid, or we could add another bundle string
+        }
     }
 
     private boolean verifySafeBannedPokemon() {

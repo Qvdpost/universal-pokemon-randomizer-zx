@@ -53,6 +53,7 @@ public class Settings {
 
     private CustomNamesSet customNames;
     private BannedPokemonSet bannedPokemon;
+    private BannedMoveSet bannedMoves;
 
     private String romName;
     private boolean updatedFromOldVersion = false;
@@ -1104,6 +1105,13 @@ public class Settings {
 
     public Settings setBannedPokemon(BannedPokemonSet bannedPokemon) {
         this.bannedPokemon = bannedPokemon;
+        return this;
+    }
+
+    public BannedMoveSet getBannedMoves() { return bannedMoves;}
+
+    public Settings setBannedMoves(BannedMoveSet bannedMoves) {
+        this.bannedMoves = bannedMoves;
         return this;
     }
 
