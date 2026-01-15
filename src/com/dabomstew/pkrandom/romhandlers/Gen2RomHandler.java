@@ -2764,7 +2764,7 @@ public class Gen2RomHandler extends AbstractGBCRomHandler {
 
     @Override
     public void removeEvosForPokemonPool() {
-        List<Pokemon> pokemonIncluded = this.mainPokemonList;
+        List<Pokemon> pokemonIncluded = this.getPokemonPool().mainPokemonList;
         Set<Evolution> keepEvos = new HashSet<>();
         for (Pokemon pk : pokes) {
             if (pk != null) {
@@ -2933,10 +2933,10 @@ public class Gen2RomHandler extends AbstractGBCRomHandler {
 
     @Override
     public BufferedImage getMascotImage() {
-        Pokemon mascot = randomPokemon();
+        Pokemon mascot = this.getAllPokemonPool().randomPokemon(random, true);
         while (mascot.number == Species.unown) {
             // Unown is banned as handling it would add a ton of extra effort.
-            mascot = randomPokemon();
+            mascot = this.getAllPokemonPool().randomPokemon(random, true);
         }
 
         // Each Pokemon has a front and back pic with a bank and a pointer

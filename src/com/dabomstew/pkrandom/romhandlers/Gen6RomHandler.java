@@ -3395,9 +3395,9 @@ public class Gen6RomHandler extends Abstract3DSRomHandler {
 
             // Pick a random Pokemon, including formes
 
-            Pokemon introPokemon = randomPokemonInclFormes();
+            Pokemon introPokemon = this.getAllPokemonPool().randomPokemon(random, true);
             while (introPokemon.actuallyCosmetic) {
-                introPokemon = randomPokemonInclFormes();
+                introPokemon = this.getAllPokemonPool().randomPokemon(random, true);
             }
             int introPokemonNum = introPokemon.number;
             int introPokemonForme = 0;
@@ -3878,7 +3878,7 @@ public class Gen6RomHandler extends Abstract3DSRomHandler {
     public void removeEvosForPokemonPool() {
         // slightly more complicated than gen2/3
         // we have to update a "baby table" too
-        List<Pokemon> pokemonIncluded = this.mainPokemonListInclFormes;
+        List<Pokemon> pokemonIncluded = this.getPokemonPool().mainPokemonListInclFormes;
         Set<Evolution> keepEvos = new HashSet<>();
         for (Pokemon pk : pokes) {
             if (pk != null) {

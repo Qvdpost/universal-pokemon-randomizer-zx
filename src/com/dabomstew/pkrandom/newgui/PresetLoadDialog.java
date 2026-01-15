@@ -61,6 +61,7 @@ public class PresetLoadDialog extends JDialog {
     private volatile boolean changeFieldsWithoutCheck = false;
     private CustomNamesSet customNames;
     private BannedPokemonSet bannedPokemon;
+    private BannedMoveSet bannedMoves;
     private java.util.ResourceBundle bundle;
 
     /**
@@ -142,7 +143,7 @@ public class PresetLoadDialog extends JDialog {
         }
 
         try {
-            name = this.parentGUI.getValidRequiredROMName(configString.substring(3), customNames, bannedPokemon);
+            name = this.parentGUI.getValidRequiredROMName(configString.substring(3), customNames, bannedPokemon, bannedMoves);
         } catch (InvalidSupplementFilesException ex) {
             safelyClearFields();
             invalidValues();
@@ -223,6 +224,10 @@ public class PresetLoadDialog extends JDialog {
         return customNames;
     }
     public BannedPokemonSet getBannedPokemon() {return bannedPokemon;}
+
+    public BannedMoveSet getBannedMoves() {
+        return bannedMoves;
+    }
 
     private void presetFileButtonActionPerformed() {// GEN-FIRST:event_presetFileButtonActionPerformed
         presetFileChooser.setSelectedFile(null);

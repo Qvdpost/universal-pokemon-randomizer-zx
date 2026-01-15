@@ -82,6 +82,7 @@ public class Randomizer {
         boolean movesetsChanged = false;
         boolean pokemonTraitsChanged = false;
         boolean startersChanged = false;
+        boolean rivalStartersChanged = false;
         boolean evolutionsChanged = false;
         boolean trainersChanged = false;
         boolean trainerMovesetsChanged = false;
@@ -465,11 +466,33 @@ public class Randomizer {
                 break;
         }
 
-        if ((settings.getTrainersMod() != Settings.TrainersMod.UNCHANGED
-                || settings.getStartersMod() != Settings.StartersMod.UNCHANGED)
-                && settings.isRivalCarriesStarterThroughout()) {
-            romHandler.rivalCarriesStarter();
-            trainersChanged = true;
+        switch(settings.getRivalStarterMod()) {
+            case CUSTOM:
+                romHandler.customRivalStarter(settings);
+                trainersChanged = true;
+                rivalStartersChanged = true;
+                break;
+            case COMPLETELY_RANDOM:
+                romHandler.randomizeRivalStarter(settings);
+                trainersChanged = true;
+                rivalStartersChanged = true;
+                break;
+            case RANDOM_WITH_TWO_EVOLUTIONS:
+                romHandler.randomizeBasicTwoEvosRivalStarter(settings);
+                trainersChanged = true;
+                rivalStartersChanged = true;
+                break;
+            case SAME:
+                romHandler.rivalCarriesStarter();
+                trainersChanged = true;
+                rivalStartersChanged = true;
+                break;
+            default:
+                break;
+        }
+
+        if (rivalStartersChanged) {
+            logRivalStarter(log);
         }
 
         if (settings.isTrainersForceFullyEvolved()) {
@@ -682,6 +705,9 @@ public class Randomizer {
 
         // Banned Pokemon
         LogBannedPokemon(log);
+        
+        // Banned Moves
+        LogBannedMoves(log);
 
         // Log tail
         String gameName = romHandler.getROMName();
@@ -1084,6 +1110,38 @@ public class Randomizer {
         log.println();
     }
 
+    private void logRivalStarter(final PrintStream log) {
+
+        switch(settings.getRivalStarterMod()) {
+            case CUSTOM:
+                log.println("--Custom Rival Starter--");
+                log.println(romHandler.getPickedRivalStarter().fullName());
+                break;
+            case COMPLETELY_RANDOM:
+                log.println("--Random Rival Starter--");
+                log.println(romHandler.getPickedRivalStarter().fullName());
+                break;
+            case RANDOM_WITH_TWO_EVOLUTIONS:
+                log.println("--Random 2-Evolution Rival Starter--");
+                log.println(romHandler.getPickedRivalStarter().fullName());
+                break;
+            case SAME:
+                log.println("--Rival Carries Starter Throughout Game--");
+                List<Pokemon> starters = romHandler.getPickedStarters();
+                int i = 1;
+                for (Pokemon starter: starters) {
+                    log.println("Set starter " + i + " to " + starter.fullName());
+                    i++;
+                }
+                break;
+            default:
+                break;
+        }
+
+
+        log.println();
+    }
+
     private void logWildPokemonChanges(final PrintStream log) {
 
         log.println("--Wild Pokemon--");
@@ -1099,9 +1157,13 @@ public class Randomizer {
             }
             log.print("(rate=" + es.rate + ")");
             log.println();
+            Pokemon primePoke = es.encounters.get(0).pokemon;
             for (Encounter e : es.encounters) {
                 StringBuilder sb = new StringBuilder();
                 if (e.isSOS) {
+                    if (primePoke.callRate == 0) {
+                        continue;
+                    }
                     String stringToAppend;
                     switch (e.sosType) {
                         case RAIN:
@@ -1203,7 +1265,6 @@ public class Randomizer {
     private int logStaticPokemon(final PrintStream log, int checkValue, List<StaticEncounter> oldStatics) {
 
         List<StaticEncounter> newStatics = romHandler.getStaticPokemon();
-
         log.println("--Static Pokemon--");
         Map<String, Integer> seenPokemon = new TreeMap<>();
         for (int i = 0; i < oldStatics.size(); i++) {
@@ -1325,15 +1386,48 @@ public class Randomizer {
             return;
         }
 
+        PokemonPool pokePool = romHandler.getAllPokemonPool();
+
         log.println("--Banned Pokemon--");
         for (int i : settings.getBannedPokemon().getBannedPokemon()) {
-            if (i < romHandler.getPokemon().size()) {
-                Pokemon poke = romHandler.getPokemon().get(i);
+            if (i < pokePool.mainPokemonListInclFormes.size()) {
+                Pokemon poke = pokePool.getPokemon(i);
+
+                if (poke == null) {
+                    for (Pokemon pokemon : pokePool.mainPokemonListInclFormes) {
+                        System.out.println(pokemon.toString());
+                    }
+                }
+
                 log.printf("%s (%s)", poke.fullName(), poke.number);
                 log.println();
             }
-
         }
+    }
+    
+    private void LogBannedMoves(final PrintStream log) {
+        if (!settings.isNoBannedMoves()) {
+            return;
+        }
+
+        BannedMoveSet bannedMoveSet = settings.getBannedMoves();
+        Map<String, String> moves = bannedMoveSet.getBannedMoves();
+        if (moves.isEmpty()) {
+            return;
+        }
+
+        log.println("--Banned Moves--");
+        if (settings.isOnlyRandomizeBannedMoves()) {
+            log.println("Only banned moves are randomized.");
+        }
+        List<String> sortedNames = new ArrayList<>(moves.keySet());
+        Collections.sort(sortedNames);
+        for (String name : sortedNames) {
+            String replacement = moves.get(name);
+            log.printf("%s -> %s", name, replacement);
+            log.println();
+        }
+        log.println();
     }
 
     private List<String> getTrainerNames() {

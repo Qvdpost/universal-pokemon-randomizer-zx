@@ -88,7 +88,7 @@ public class Utils {
         }
     }
 
-    public static void validatePresetSupplementFiles(String config, CustomNamesSet customNames, BannedPokemonSet bannedPokemon)
+    public static void validatePresetSupplementFiles(String config, CustomNamesSet customNames, BannedPokemonSet bannedPokemon, BannedMoveSet bannedMoves)
             throws InvalidSupplementFilesException {
         byte[] data = Base64.getDecoder().decode(config);
 
@@ -98,12 +98,12 @@ public class Utils {
         }
 
         // Check the checksum
-        ByteBuffer buf = ByteBuffer.allocate(4).put(data, data.length - 12, 4);
+        ByteBuffer buf = ByteBuffer.allocate(4).put(data, data.length - 16, 4);
         buf.rewind();
         int crc = buf.getInt();
 
         CRC32 checksum = new CRC32();
-        checksum.update(data, 0, data.length - 12);
+        checksum.update(data, 0, data.length - 16);
         if ((int) checksum.getValue() != crc) {
             throw new IllegalArgumentException("Checksum failure.");
         }
@@ -117,6 +117,11 @@ public class Utils {
         if (bannedPokemon == null && !FileFunctions.checkOtherCRC(data, 16, 4, SysConstants.bannedPokemonFile, data.length - 4)) {
             throw new InvalidSupplementFilesException(InvalidSupplementFilesException.Type.BANNED_POKEMON,
                     "Can't use this preset because you have a different set " + "of banned Pokemon to the creator.");
+        }
+
+        if (bannedMoves == null && !FileFunctions.checkOtherCRC(data, 16, 4, SysConstants.bannedMovesFile, data.length)) {
+            throw new InvalidSupplementFilesException(InvalidSupplementFilesException.Type.BANNED_MOVES,
+                    "Can't use this preset because you have a different set " + "of banned Moves to the creator.");
         }
     }
 

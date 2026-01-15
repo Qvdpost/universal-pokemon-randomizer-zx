@@ -28,6 +28,11 @@ Where to get it
 Some settings don't play nice when you ban too many Pokemon, i.e. randomizing by theme can cause weird behavior if you've banned all Pokemon of a type, or randomizing starters with 2 evolutions after banning too many basic Pokemon. I tried to program some break-outs for them, but you might encounter an unhandled exception. Remember that randomizing should take seconds, not minutes and to close down the tool if it takes too long.
 Final notes
 
+## Releases
+
+Download the latest ZXQ version from the [release page](https://github.com/Qvdpost/universal-pokemon-randomizer-zx/releases).
+
+
 # Original project
 (pull request pending over [here](https://github.com/Ajarmar/universal-pokemon-randomizer-zx/pull/695)
 

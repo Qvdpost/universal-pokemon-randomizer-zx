@@ -46,7 +46,7 @@ public class GenRestrictions {
         allow_gen6 = (state & 32) > 0;
         allow_gen7 = (state & 64) > 0;
         allow_evolutionary_relatives = (state & 128) > 0;
-        ban_pokemon = (state & 266) > 0;
+        ban_pokemon = (state & 256) > 0;
     }
 
     public boolean nothingSelected() {

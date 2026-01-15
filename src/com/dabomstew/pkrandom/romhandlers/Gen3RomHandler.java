@@ -3659,9 +3659,9 @@ public class Gen3RomHandler extends AbstractGBRomHandler {
             writePointer(spriteBase + 4, palettes + introPokemon * 8);
         } else if (romEntry.romType == Gen3Constants.RomType_Ruby || romEntry.romType == Gen3Constants.RomType_Sapp) {
             // intro sprites : any pokemon in the range 0-510 except bulbasaur
-            int introPokemon = pokedexToInternal[randomPokemon().number];
+            int introPokemon = pokedexToInternal[this.getAllPokemonPool().randomPokemon(random, false).number];
             while (introPokemon == 1 || introPokemon > 510) {
-                introPokemon = pokedexToInternal[randomPokemon().number];
+                introPokemon = pokedexToInternal[this.getAllPokemonPool().randomPokemon(random, false).number];
             }
             int frontSprites = romEntry.getValue("PokemonFrontSprites");
             int palettes = romEntry.getValue("PokemonNormalPalettes");
@@ -3696,7 +3696,7 @@ public class Gen3RomHandler extends AbstractGBRomHandler {
             writePointer(romEntry.getValue("IntroPaletteOffset"), palettes + introPokemon * 8);
         } else {
             // Emerald, intro sprite: any Pokemon.
-            int introPokemon = pokedexToInternal[randomPokemon().number];
+            int introPokemon = pokedexToInternal[this.getAllPokemonPool().randomPokemon(random, false).number];
             writeWord(romEntry.getValue("IntroSpriteOffset"), introPokemon);
             writeWord(romEntry.getValue("IntroCryOffset"), introPokemon);
         }
@@ -3706,7 +3706,7 @@ public class Gen3RomHandler extends AbstractGBRomHandler {
     private Pokemon randomPokemonLimited(int maxValue, boolean blockNonMales) {
         checkPokemonRestrictions();
         List<Pokemon> validPokemon = new ArrayList<>();
-        for (Pokemon pk : this.mainPokemonList) {
+        for (Pokemon pk : this.getPokemonPool().mainPokemonList) {
             if (pokedexToInternal[pk.number] <= maxValue && (!blockNonMales || pk.genderRatio <= 0xFD)) {
                 validPokemon.add(pk);
             }
@@ -4086,7 +4086,7 @@ public class Gen3RomHandler extends AbstractGBRomHandler {
 
     @Override
     public void removeEvosForPokemonPool() {
-        List<Pokemon> pokemonIncluded = this.mainPokemonList;
+        List<Pokemon> pokemonIncluded = this.getPokemonPool().mainPokemonList;
         Set<Evolution> keepEvos = new HashSet<>();
         for (Pokemon pk : pokes) {
             if (pk != null) {
@@ -4398,7 +4398,7 @@ public class Gen3RomHandler extends AbstractGBRomHandler {
 
     @Override
     public BufferedImage getMascotImage() {
-        Pokemon mascotPk = randomPokemon();
+        Pokemon mascotPk = this.getAllPokemonPool().randomPokemon(random, false);
         int mascotPokemon = pokedexToInternal[mascotPk.number];
         int frontSprites = romEntry.getValue("FrontSprites");
         int palettes = romEntry.getValue("PokemonPalettes");

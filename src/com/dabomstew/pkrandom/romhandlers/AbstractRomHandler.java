@@ -41,14 +41,19 @@ import com.dabomstew.pkrandom.pokemon.*;
 public abstract class AbstractRomHandler implements RomHandler {
 
     private boolean restrictionsSet;
-    protected List<Pokemon> mainPokemonList;
-    protected List<Pokemon> mainPokemonListInclFormes;
-    private List<Pokemon> altFormesList;
-    private List<MegaEvolution> megaEvolutionsList;
-    private List<Pokemon> noLegendaryList, onlyLegendaryList, ultraBeastList;
-    private List<Pokemon> noLegendaryListInclFormes, onlyLegendaryListInclFormes;
-    private List<Pokemon> noLegendaryAltsList, onlyLegendaryAltsList;
+    protected PokemonPool allPokemonPool = new PokemonPool(this);
+    protected PokemonPool mainPokemonPool = new PokemonPool(this);
+//    protected List<Pokemon> mainPokemonList;
+//    protected List<Pokemon> mainPokemonListInclFormes;
+//    protected List<Pokemon> noBanPokemonList;
+//    protected List<Pokemon> noLimitPokemonList;
+//    private List<Pokemon> altFormesList;
+//    private List<MegaEvolution> megaEvolutionsList;
+//    private List<Pokemon> noLegendaryList, onlyLegendaryList, ultraBeastList;
+//    private List<Pokemon> noLegendaryListInclFormes, onlyLegendaryListInclFormes;
+//    private List<Pokemon> noLegendaryAltsList, onlyLegendaryAltsList;
     private List<Pokemon> pickedStarters;
+    private Pokemon pickedRivalStarter;
     protected final Random random;
     private final Random cosmeticRandom;
     protected PrintStream logStream;
@@ -56,8 +61,8 @@ public abstract class AbstractRomHandler implements RomHandler {
     private Map<Pokemon, Integer> placementHistory = new HashMap<>();
     private Map<Integer, Integer> itemPlacementHistory = new HashMap<>();
     private int fullyEvolvedRandomSeed;
-    boolean isORAS = false;
-    boolean isSM = false;
+    public boolean isORAS = false;
+    public boolean isSM = false;
     int perfectAccuracy = 100;
 
     /* Constructor */
@@ -78,163 +83,19 @@ public abstract class AbstractRomHandler implements RomHandler {
     }
 
     public void setPokemonPool(Settings settings) {
-        GenRestrictions restrictions = null;
-        if (settings != null) {
-            restrictions = settings.getCurrentRestrictions();
-
-            // restrictions should already be null if "Limit Pokemon" is disabled, but this
-            // is a safeguard
-            if (!settings.isLimitPokemon()) {
-                restrictions = null;
-            }
-        }
-
         restrictionsSet = true;
-        mainPokemonList = this.allPokemonWithoutNull();
-        mainPokemonListInclFormes = this.allPokemonInclFormesWithoutNull();
-        altFormesList = this.getAltFormes();
-        megaEvolutionsList = this.getMegaEvolutions();
-        if (restrictions != null) {
-            mainPokemonList = new ArrayList<>();
-            mainPokemonListInclFormes = new ArrayList<>();
-            megaEvolutionsList = new ArrayList<>();
-            List<Pokemon> allPokemon = this.getPokemon();
 
-            if (restrictions.allow_gen1) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.bulbasaur, Species.mew);
-            }
+        this.allPokemonPool.setPokemonPool(null);
+        this.mainPokemonPool.setPokemonPool(settings);
 
-            if (restrictions.allow_gen2 && allPokemon.size() > Gen2Constants.pokemonCount) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.chikorita, Species.celebi);
-            }
-
-            if (restrictions.allow_gen3 && allPokemon.size() > Gen3Constants.pokemonCount) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.treecko, Species.deoxys);
-            }
-
-            if (restrictions.allow_gen4 && allPokemon.size() > Gen4Constants.pokemonCount) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.turtwig, Species.arceus);
-            }
-
-            if (restrictions.allow_gen5 && allPokemon.size() > Gen5Constants.pokemonCount) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.victini, Species.genesect);
-            }
-
-            if (restrictions.allow_gen6 && allPokemon.size() > Gen6Constants.pokemonCount) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.chespin, Species.volcanion);
-            }
-
-            int maxGen7SpeciesID = isSM ? Species.marshadow : Species.zeraora;
-            if (restrictions.allow_gen7 && allPokemon.size() > maxGen7SpeciesID) {
-                addPokesFromRange(mainPokemonList, allPokemon, Species.rowlet, maxGen7SpeciesID);
-            }
-
-            if (restrictions.ban_pokemon) {
-                removeBannedPokemon(mainPokemonList, allPokemon, settings.getBannedPokemon());
-            }
-
-            // If the user specified it, add all the evolutionary relatives for everything
-            // in the mainPokemonList
-            if (restrictions.allow_evolutionary_relatives) {
-                addEvolutionaryRelatives(mainPokemonList);
-            }
-
-            // Now that mainPokemonList has all the selected Pokemon, update
-            // mainPokemonListInclFormes too
-            addAllPokesInclFormes(mainPokemonList, mainPokemonListInclFormes);
-
-            // Populate megaEvolutionsList with all of the mega evolutions that exist in the
-            // pool
-            List<MegaEvolution> allMegaEvolutions = this.getMegaEvolutions();
-            for (MegaEvolution megaEvo : allMegaEvolutions) {
-                if (mainPokemonListInclFormes.contains(megaEvo.to)) {
-                    megaEvolutionsList.add(megaEvo);
-                }
-            }
-        }
-
-        noLegendaryList = new ArrayList<>();
-        noLegendaryListInclFormes = new ArrayList<>();
-        onlyLegendaryList = new ArrayList<>();
-        onlyLegendaryListInclFormes = new ArrayList<>();
-        noLegendaryAltsList = new ArrayList<>();
-        onlyLegendaryAltsList = new ArrayList<>();
-        ultraBeastList = new ArrayList<>();
-
-        for (Pokemon p : mainPokemonList) {
-            if (p.isLegendary()) {
-                onlyLegendaryList.add(p);
-            } else if (p.isUltraBeast()) {
-                ultraBeastList.add(p);
-            } else {
-                noLegendaryList.add(p);
-            }
-        }
-        for (Pokemon p : mainPokemonListInclFormes) {
-            if (p.isLegendary()) {
-                onlyLegendaryListInclFormes.add(p);
-            } else if (!ultraBeastList.contains(p)) {
-                noLegendaryListInclFormes.add(p);
-            }
-        }
-        for (Pokemon f : altFormesList) {
-            if (f.isLegendary()) {
-                onlyLegendaryAltsList.add(f);
-            } else {
-                noLegendaryAltsList.add(f);
-            }
-        }
     }
 
-    public List<Pokemon> getPokemonPool() {
-        return Collections.unmodifiableList(mainPokemonList);
+    public PokemonPool getPokemonPool() {
+        return mainPokemonPool;
     }
 
-    private void addPokesFromRange(List<Pokemon> pokemonPool, List<Pokemon> allPokemon, int range_min, int range_max) {
-        for (int i = range_min; i <= range_max; i++) {
-            if (!pokemonPool.contains(allPokemon.get(i))) {
-                pokemonPool.add(allPokemon.get(i));
-            }
-        }
-    }
-
-    private void removeBannedPokemon(List<Pokemon> pokemonPool, List<Pokemon> allPokemon, BannedPokemonSet bannedPokemon) {
-        for (int i : bannedPokemon.getBannedPokemon()) {
-            if (i < allPokemon.size()) {
-                pokemonPool.remove(allPokemon.get(i));
-            }
-        }
-    }
-
-    private void addEvolutionaryRelatives(List<Pokemon> pokemonPool) {
-        Set<Pokemon> newPokemon = new TreeSet<>();
-        for (Pokemon pk : pokemonPool) {
-            List<Pokemon> evolutionaryRelatives = getEvolutionaryRelatives(pk);
-            for (Pokemon relative : evolutionaryRelatives) {
-                if (!pokemonPool.contains(relative) && !newPokemon.contains(relative)) {
-                    newPokemon.add(relative);
-                }
-            }
-        }
-
-        pokemonPool.addAll(newPokemon);
-    }
-
-    private void addAllPokesInclFormes(List<Pokemon> pokemonPool, List<Pokemon> pokemonPoolInclFormes) {
-        List<Pokemon> altFormes = this.getAltFormes();
-        for (int i = 0; i < pokemonPool.size(); i++) {
-            Pokemon currentPokemon = pokemonPool.get(i);
-            if (!pokemonPoolInclFormes.contains(currentPokemon)) {
-                pokemonPoolInclFormes.add(currentPokemon);
-            }
-            for (int j = 0; j < altFormes.size(); j++) {
-                Pokemon potentialAltForme = altFormes.get(j);
-                if (potentialAltForme.baseForme != null
-                        && potentialAltForme.baseForme.number == currentPokemon.number) {
-                    pokemonPoolInclFormes.add(potentialAltForme);
-                }
-            }
-        }
+    public PokemonPool getAllPokemonPool() {
+        return allPokemonPool;
     }
 
     @Override
@@ -364,68 +225,6 @@ public abstract class AbstractRomHandler implements RomHandler {
                 }
             }
         }
-    }
-
-    public Pokemon randomPokemon() {
-        checkPokemonRestrictions();
-        return mainPokemonList.get(this.random.nextInt(mainPokemonList.size()));
-    }
-
-    @Override
-    public Pokemon randomPokemonInclFormes() {
-        checkPokemonRestrictions();
-        return mainPokemonListInclFormes.get(this.random.nextInt(mainPokemonListInclFormes.size()));
-    }
-
-    @Override
-    public Pokemon randomNonLegendaryPokemon() {
-        checkPokemonRestrictions();
-        return noLegendaryList.get(this.random.nextInt(noLegendaryList.size()));
-    }
-
-    private Pokemon randomNonLegendaryPokemonInclFormes() {
-        checkPokemonRestrictions();
-        return noLegendaryListInclFormes.get(this.random.nextInt(noLegendaryListInclFormes.size()));
-    }
-
-    @Override
-    public Pokemon randomLegendaryPokemon() {
-        checkPokemonRestrictions();
-        return onlyLegendaryList.get(this.random.nextInt(onlyLegendaryList.size()));
-    }
-
-    private List<Pokemon> twoEvoPokes;
-
-    @Override
-    public Pokemon random2EvosPokemon(boolean allowAltFormes) {
-        if (twoEvoPokes == null) {
-            // Prepare the list
-            twoEvoPokes = new ArrayList<>();
-            List<Pokemon> allPokes = allowAltFormes ? this.getPokemonInclFormes()
-                    .stream()
-                    .filter(pk -> pk == null || !pk.actuallyCosmetic)
-                    .collect(Collectors.toList()) : this.getPokemon();
-            for (Pokemon pk : allPokes) {
-                if (pk != null && pk.evolutionsTo.size() == 0 && pk.evolutionsFrom.size() > 0) {
-                    // Potential candidate
-                    for (Evolution ev : pk.evolutionsFrom) {
-                        // If any of the targets here evolve, the original
-                        // Pokemon has 2+ stages.
-                        if (ev.to.evolutionsFrom.size() > 0) {
-                            twoEvoPokes.add(pk);
-                            break;
-                        }
-                    }
-                }
-            }
-            twoEvoPokes = twoEvoPokes.stream()
-                    .distinct()
-                    .filter(mainPokemonList::contains).collect(Collectors.toList());
-        }
-        if (twoEvoPokes.isEmpty()) {
-            return randomPokemon();
-        }
-        return twoEvoPokes.get(this.random.nextInt(twoEvoPokes.size()));
     }
 
     @Override
@@ -767,18 +566,20 @@ public abstract class AbstractRomHandler implements RomHandler {
 
         BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
 
+        PokemonPool pokePool = this.getPokemonPool();
+
         // Assume EITHER catch em all OR type themed OR match strength for now
         if (catchEmAll) {
             List<Pokemon> allPokes;
             if (allowAltFormes) {
-                allPokes = noLegendaries ? new ArrayList<>(noLegendaryListInclFormes)
+                allPokes = noLegendaries ? new ArrayList<>(pokePool.noLegendaryListInclFormes)
                         : new ArrayList<>(
-                                mainPokemonListInclFormes);
+                        pokePool.mainPokemonListInclFormes);
                 allPokes.removeIf(o -> ((Pokemon) o).actuallyCosmetic);
             } else {
-                allPokes = noLegendaries ? new ArrayList<>(noLegendaryList)
+                allPokes = noLegendaries ? new ArrayList<>(pokePool.noLegendaryList)
                         : new ArrayList<>(
-                                mainPokemonList);
+                        pokePool.mainPokemonList);
             }
             allPokes.removeAll(banned);
 
@@ -808,14 +609,14 @@ public abstract class AbstractRomHandler implements RomHandler {
                         // something else for now.
                         List<Pokemon> tempPickable;
                         if (allowAltFormes) {
-                            tempPickable = noLegendaries ? new ArrayList<>(noLegendaryListInclFormes)
+                            tempPickable = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryListInclFormes)
                                     : new ArrayList<>(
-                                            mainPokemonListInclFormes);
+                                    mainPokemonPool.mainPokemonListInclFormes);
                             tempPickable.removeIf(o -> ((Pokemon) o).actuallyCosmetic);
                         } else {
-                            tempPickable = noLegendaries ? new ArrayList<>(noLegendaryList)
+                            tempPickable = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryList)
                                     : new ArrayList<>(
-                                            mainPokemonList);
+                                    mainPokemonPool.mainPokemonList);
                         }
                         tempPickable.removeAll(banned);
                         tempPickable.removeAll(area.bannedPokemon);
@@ -837,10 +638,10 @@ public abstract class AbstractRomHandler implements RomHandler {
                         if (allPokes.size() == 0) {
                             // Start again
                             if (allowAltFormes) {
-                                allPokes.addAll(noLegendaries ? noLegendaryListInclFormes : mainPokemonListInclFormes);
+                                allPokes.addAll(noLegendaries ? mainPokemonPool.noLegendaryListInclFormes : mainPokemonPool.mainPokemonListInclFormes);
                                 allPokes.removeIf(o -> ((Pokemon) o).actuallyCosmetic);
                             } else {
-                                allPokes.addAll(noLegendaries ? noLegendaryList : mainPokemonList);
+                                allPokes.addAll(noLegendaries ? mainPokemonPool.noLegendaryList : mainPokemonPool.mainPokemonList);
                             }
                             allPokes.removeAll(banned);
                             if (pickablePokemon != allPokes) {
@@ -893,11 +694,11 @@ public abstract class AbstractRomHandler implements RomHandler {
         } else if (usePowerLevels) {
             List<Pokemon> allowedPokes;
             if (allowAltFormes) {
-                allowedPokes = noLegendaries ? new ArrayList<>(noLegendaryListInclFormes)
-                        : new ArrayList<>(mainPokemonListInclFormes);
+                allowedPokes = noLegendaries ? new ArrayList<>(pokePool.noLegendaryListInclFormes)
+                        : new ArrayList<>(pokePool.mainPokemonListInclFormes);
             } else {
-                allowedPokes = noLegendaries ? new ArrayList<>(noLegendaryList)
-                        : new ArrayList<>(mainPokemonList);
+                allowedPokes = noLegendaries ? new ArrayList<>(pokePool.noLegendaryList)
+                        : new ArrayList<>(pokePool.mainPokemonList);
             }
             allowedPokes.removeAll(banned);
             for (EncounterSet area : scrambledEncounters) {
@@ -942,7 +743,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                     if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
                         continue;
                     }
-                    enc.pokemon = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
+                    enc.pokemon = pickEntirelyRandomPokemon(pokePool, allowAltFormes, noLegendaries, area, banned);
                     setFormeForEncounter(enc, enc.pokemon);
                 }
             }
@@ -999,6 +800,7 @@ public abstract class AbstractRomHandler implements RomHandler {
         }
 
         BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
+        PokemonPool pokePool = this.getPokemonPool();
 
         // New: randomize the order encounter sets are randomized in.
         // Leads to less predictable results for various modifiers.
@@ -1010,14 +812,14 @@ public abstract class AbstractRomHandler implements RomHandler {
         if (catchEmAll) {
             List<Pokemon> allPokes;
             if (allowAltFormes) {
-                allPokes = noLegendaries ? new ArrayList<>(noLegendaryListInclFormes)
+                allPokes = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryListInclFormes)
                         : new ArrayList<>(
-                                mainPokemonListInclFormes);
+                                mainPokemonPool.mainPokemonListInclFormes);
                 allPokes.removeIf(o -> ((Pokemon) o).actuallyCosmetic);
             } else {
-                allPokes = noLegendaries ? new ArrayList<>(noLegendaryList)
+                allPokes = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryList)
                         : new ArrayList<>(
-                                mainPokemonList);
+                                mainPokemonPool.mainPokemonList);
             }
             allPokes.removeAll(banned);
             for (EncounterSet area : scrambledEncounters) {
@@ -1038,14 +840,14 @@ public abstract class AbstractRomHandler implements RomHandler {
                         // No more pickable pokes left, take a random one
                         List<Pokemon> tempPickable;
                         if (allowAltFormes) {
-                            tempPickable = noLegendaries ? new ArrayList<>(noLegendaryListInclFormes)
+                            tempPickable = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryListInclFormes)
                                     : new ArrayList<>(
-                                            mainPokemonListInclFormes);
+                                            mainPokemonPool.mainPokemonListInclFormes);
                             tempPickable.removeIf(o -> ((Pokemon) o).actuallyCosmetic);
                         } else {
-                            tempPickable = noLegendaries ? new ArrayList<>(noLegendaryList)
+                            tempPickable = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryList)
                                     : new ArrayList<>(
-                                            mainPokemonList);
+                                            mainPokemonPool.mainPokemonList);
                         }
                         tempPickable.removeAll(banned);
                         tempPickable.removeAll(area.bannedPokemon);
@@ -1066,10 +868,10 @@ public abstract class AbstractRomHandler implements RomHandler {
                         if (allPokes.size() == 0) {
                             // Start again
                             if (allowAltFormes) {
-                                allPokes.addAll(noLegendaries ? noLegendaryListInclFormes : mainPokemonListInclFormes);
+                                allPokes.addAll(noLegendaries ? mainPokemonPool.noLegendaryListInclFormes : mainPokemonPool.mainPokemonListInclFormes);
                                 allPokes.removeIf(o -> ((Pokemon) o).actuallyCosmetic);
                             } else {
-                                allPokes.addAll(noLegendaries ? noLegendaryList : mainPokemonList);
+                                allPokes.addAll(noLegendaries ? mainPokemonPool.noLegendaryList : mainPokemonPool.mainPokemonList);
                             }
                             allPokes.removeAll(banned);
                             if (pickablePokemon != allPokes) {
@@ -1147,11 +949,11 @@ public abstract class AbstractRomHandler implements RomHandler {
         } else if (usePowerLevels) {
             List<Pokemon> allowedPokes;
             if (allowAltFormes) {
-                allowedPokes = noLegendaries ? new ArrayList<>(noLegendaryListInclFormes)
-                        : new ArrayList<>(mainPokemonListInclFormes);
+                allowedPokes = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryListInclFormes)
+                        : new ArrayList<>(mainPokemonPool.mainPokemonListInclFormes);
             } else {
-                allowedPokes = noLegendaries ? new ArrayList<>(noLegendaryList)
-                        : new ArrayList<>(mainPokemonList);
+                allowedPokes = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryList)
+                        : new ArrayList<>(mainPokemonPool.mainPokemonList);
             }
             allowedPokes.removeAll(banned);
             for (EncounterSet area : scrambledEncounters) {
@@ -1195,9 +997,9 @@ public abstract class AbstractRomHandler implements RomHandler {
                         areaMap.put(areaPk, areaPk);
                         continue;
                     }
-                    Pokemon picked = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
+                    Pokemon picked = pickEntirelyRandomPokemon(pokePool, allowAltFormes, noLegendaries, area, banned);
                     while (areaMap.containsValue(picked)) {
-                        picked = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
+                        picked = pickEntirelyRandomPokemon(pokePool, allowAltFormes, noLegendaries, area, banned);
                     }
                     areaMap.put(areaPk, picked);
                 }
@@ -1239,12 +1041,12 @@ public abstract class AbstractRomHandler implements RomHandler {
         remainingLeft.removeIf(o -> ((Pokemon) o).actuallyCosmetic);
         List<Pokemon> remainingRight;
         if (allowAltFormes) {
-            remainingRight = noLegendaries ? new ArrayList<>(noLegendaryListInclFormes)
-                    : new ArrayList<>(mainPokemonListInclFormes);
+            remainingRight = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryListInclFormes)
+                    : new ArrayList<>(mainPokemonPool.mainPokemonListInclFormes);
             remainingRight.removeIf(o -> ((Pokemon) o).actuallyCosmetic);
         } else {
-            remainingRight = noLegendaries ? new ArrayList<>(noLegendaryList)
-                    : new ArrayList<>(mainPokemonList);
+            remainingRight = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryList)
+                    : new ArrayList<>(mainPokemonPool.mainPokemonList);
         }
         List<Pokemon> banned = this.bannedForWildEncounters();
         banned.addAll(this.getBannedFormesForPlayerPokemon());
@@ -1301,10 +1103,10 @@ public abstract class AbstractRomHandler implements RomHandler {
             if (remainingRight.size() == 0) {
                 // restart
                 if (allowAltFormes) {
-                    remainingRight.addAll(noLegendaries ? noLegendaryListInclFormes : mainPokemonListInclFormes);
+                    remainingRight.addAll(noLegendaries ? mainPokemonPool.noLegendaryListInclFormes : mainPokemonPool.mainPokemonListInclFormes);
                     remainingRight.removeIf(o -> ((Pokemon) o).actuallyCosmetic);
                 } else {
-                    remainingRight.addAll(noLegendaries ? noLegendaryList : mainPokemonList);
+                    remainingRight.addAll(noLegendaries ? mainPokemonPool.noLegendaryList : mainPokemonPool.mainPokemonList);
                 }
                 remainingRight.removeAll(banned);
             }
@@ -1328,12 +1130,12 @@ public abstract class AbstractRomHandler implements RomHandler {
                     // Ignore the map and put a random non-banned poke
                     List<Pokemon> tempPickable;
                     if (allowAltFormes) {
-                        tempPickable = noLegendaries ? new ArrayList<>(noLegendaryListInclFormes)
-                                : new ArrayList<>(mainPokemonListInclFormes);
+                        tempPickable = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryListInclFormes)
+                                : new ArrayList<>(mainPokemonPool.mainPokemonListInclFormes);
                         tempPickable.removeIf(o -> ((Pokemon) o).actuallyCosmetic);
                     } else {
-                        tempPickable = noLegendaries ? new ArrayList<>(noLegendaryList)
-                                : new ArrayList<>(mainPokemonList);
+                        tempPickable = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryList)
+                                : new ArrayList<>(mainPokemonPool.mainPokemonList);
                     }
                     tempPickable.removeAll(banned);
                     tempPickable.removeAll(area.bannedPokemon);
@@ -1392,6 +1194,7 @@ public abstract class AbstractRomHandler implements RomHandler {
         boolean abilitiesAreRandomized = settings.getAbilitiesMod() == Settings.AbilitiesMod.RANDOMIZE;
 
         BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
+        PokemonPool pokePool = this.getPokemonPool();
 
         List<Pokemon> banned = this.bannedForWildEncounters();
         if (!abilitiesAreRandomized) {
@@ -1419,7 +1222,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                                 if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
                                     continue;
                                 }
-                                enc.pokemon = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
+                                enc.pokemon = pickEntirelyRandomPokemon(pokePool, allowAltFormes, noLegendaries, area, banned);
                                 setFormeForEncounter(enc, enc.pokemon);
                             }
                         }
@@ -1463,11 +1266,11 @@ public abstract class AbstractRomHandler implements RomHandler {
                     } else if (usePowerLevels) {
                         List<Pokemon> allowedPokes;
                         if (allowAltFormes) {
-                            allowedPokes = noLegendaries ? new ArrayList<>(noLegendaryListInclFormes)
-                                    : new ArrayList<>(mainPokemonListInclFormes);
+                            allowedPokes = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryListInclFormes)
+                                    : new ArrayList<>(mainPokemonPool.mainPokemonListInclFormes);
                         } else {
-                            allowedPokes = noLegendaries ? new ArrayList<>(noLegendaryList)
-                                    : new ArrayList<>(mainPokemonList);
+                            allowedPokes = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryList)
+                                    : new ArrayList<>(mainPokemonPool.mainPokemonList);
                         }
                         allowedPokes.removeAll(banned);
                         List<Pokemon> localAllowed = allowedPokes;
@@ -1491,7 +1294,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                             if (settings.isOnlyRandomizeBannedWild() && !bannedPokemon.contains(enc.pokemon)) {
                                 continue;
                             }
-                            enc.pokemon = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
+                            enc.pokemon = pickEntirelyRandomPokemon(pokePool, allowAltFormes, noLegendaries, area, banned);
                             setFormeForEncounter(enc, enc.pokemon);
                         }
                     }
@@ -1526,7 +1329,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                 if (catchEmAll) {
                     boolean shouldRandomize = doesAnotherEncounterWithSamePokemonExistInArea(enc, area);
                     if (shouldRandomize) {
-                        enc.pokemon = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
+                        enc.pokemon = pickEntirelyRandomPokemon(pokePool, allowAltFormes, noLegendaries, area, banned);
                         setFormeForEncounter(enc, enc.pokemon);
                     }
                 } else if (typeThemed) {
@@ -1556,11 +1359,11 @@ public abstract class AbstractRomHandler implements RomHandler {
                 } else if (usePowerLevels) {
                     List<Pokemon> allowedPokes;
                     if (allowAltFormes) {
-                        allowedPokes = noLegendaries ? new ArrayList<>(noLegendaryListInclFormes)
-                                : new ArrayList<>(mainPokemonListInclFormes);
+                        allowedPokes = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryListInclFormes)
+                                : new ArrayList<>(mainPokemonPool.mainPokemonListInclFormes);
                     } else {
-                        allowedPokes = noLegendaries ? new ArrayList<>(noLegendaryList)
-                                : new ArrayList<>(mainPokemonList);
+                        allowedPokes = noLegendaries ? new ArrayList<>(mainPokemonPool.noLegendaryList)
+                                : new ArrayList<>(mainPokemonPool.mainPokemonList);
                     }
                     allowedPokes.removeAll(banned);
                     List<Pokemon> localAllowed = allowedPokes;
@@ -1575,7 +1378,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                     setFormeForEncounter(enc, enc.pokemon);
                 } else {
                     // Entirely random
-                    enc.pokemon = pickEntirelyRandomPokemon(allowAltFormes, noLegendaries, area, banned);
+                    enc.pokemon = pickEntirelyRandomPokemon(pokePool, allowAltFormes, noLegendaries, area, banned);
                     setFormeForEncounter(enc, enc.pokemon);
                 }
                 crashThreshold = computeDexNavCrashThreshold(encountersInZone);
@@ -1801,16 +1604,18 @@ public abstract class AbstractRomHandler implements RomHandler {
 
         BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
 
+        PokemonPool pokePool = settings.isNoBanRandomizeTrainer() ? this.getAllPokemonPool() : this.getPokemonPool();
+
         // Set up Pokemon pool
         cachedReplacementLists = new TreeMap<>();
-        cachedAllList = noLegendaries ? new ArrayList<>(noLegendaryList)
+        cachedAllList = noLegendaries ? new ArrayList<>(pokePool.noLegendaryList)
                 : new ArrayList<>(
-                        mainPokemonList);
+                pokePool.mainPokemonList);
         if (includeFormes) {
             if (noLegendaries) {
-                cachedAllList.addAll(noLegendaryAltsList);
+                cachedAllList.addAll(pokePool.noLegendaryAltsList);
             } else {
-                cachedAllList.addAll(altFormesList);
+                cachedAllList.addAll(pokePool.altFormesList);
             }
         }
         cachedAllList = cachedAllList
@@ -2175,6 +1980,98 @@ public abstract class AbstractRomHandler implements RomHandler {
         rivalCarriesStarterUpdate(currentTrainers, "RIVAL", isORAS ? 0 : 1);
         rivalCarriesStarterUpdate(currentTrainers, "FRIEND", 2);
         this.setTrainers(currentTrainers, false);
+    }
+
+    private void setRivalStarter(Pokemon pokemon) {
+        checkPokemonRestrictions();
+        pickedRivalStarter = pokemon;
+        List<Trainer> currentTrainers = this.getTrainers();
+        setRivalStarterUpdate(currentTrainers, "RIVAL", pokemon);
+        setRivalStarterUpdate(currentTrainers, "FRIEND", pokemon);
+        this.setTrainers(currentTrainers, false);
+    }
+
+    @Override
+    public void customRivalStarter(Settings settings) {
+        boolean abilitiesUnchanged = settings.getAbilitiesMod() == Settings.AbilitiesMod.UNCHANGED;
+        int customRivalStarter = settings.getCustomRivalStarter();
+        boolean allowAltFormes = settings.isAllowStarterAltFormes();
+        boolean banIrregularAltFormes = settings.isBanIrregularAltFormes();
+
+        PokemonPool pokePool = this.getAllPokemonPool();
+
+        List<Pokemon> banned = getBannedFormesForPlayerPokemon();
+        if (abilitiesUnchanged) {
+            List<Pokemon> abilityDependentFormes = getAbilityDependentFormes();
+            banned.addAll(abilityDependentFormes);
+        }
+        if (banIrregularAltFormes) {
+            banned.addAll(getIrregularFormes());
+        }
+
+        Pokemon pickedRivalStarter;
+        if (customRivalStarter == 0) {
+            pokePool = settings.isNoBanRandomizeRivalStarter() ? this.getAllPokemonPool() : this.getPokemonPool();
+            pickedRivalStarter = pokePool.randomPokemon(random, allowAltFormes);
+            while ((pickedStarters != null && pickedStarters.contains(pickedRivalStarter))
+                    || banned.contains(pickedRivalStarter) || pickedRivalStarter.actuallyCosmetic) {
+                pickedRivalStarter = pokePool.randomPokemon(random, allowAltFormes);
+            }
+        } else {
+            pickedRivalStarter = pokePool.getPokemon(customRivalStarter);
+        }
+
+        setRivalStarter(pickedRivalStarter);
+    }
+    @Override
+    public void randomizeRivalStarter(Settings settings){
+        boolean abilitiesUnchanged = settings.getAbilitiesMod() == Settings.AbilitiesMod.UNCHANGED;
+        boolean allowAltFormes = settings.isAllowStarterAltFormes();
+        boolean banIrregularAltFormes = settings.isBanIrregularAltFormes();
+
+        PokemonPool pokePool = settings.isNoBanRandomizeRivalStarter() ? this.getAllPokemonPool() : this.getPokemonPool();
+
+        List<Pokemon> banned = getBannedFormesForPlayerPokemon();
+
+        if (abilitiesUnchanged) {
+            List<Pokemon> abilityDependentFormes = getAbilityDependentFormes();
+            banned.addAll(abilityDependentFormes);
+        }
+        if (banIrregularAltFormes) {
+            banned.addAll(getIrregularFormes());
+        }
+
+        Pokemon rivalStarter = pokePool.randomPokemon(this.random, allowAltFormes);
+        while ((pickedStarters != null && pickedStarters.contains(rivalStarter)) || banned.contains(rivalStarter) || rivalStarter.actuallyCosmetic) {
+            rivalStarter = pokePool.randomPokemon(this.random, allowAltFormes);
+        }
+
+        setRivalStarter(rivalStarter);
+    }
+    @Override
+    public void randomizeBasicTwoEvosRivalStarter(Settings settings){
+        boolean abilitiesUnchanged = settings.getAbilitiesMod() == Settings.AbilitiesMod.UNCHANGED;
+        boolean allowAltFormes = settings.isAllowStarterAltFormes();
+        boolean banIrregularAltFormes = settings.isBanIrregularAltFormes();
+
+        PokemonPool pokePool = settings.isNoBanRandomizeRivalStarter() ? this.getAllPokemonPool() : this.getPokemonPool();
+
+        List<Pokemon> banned = getBannedFormesForPlayerPokemon();
+
+        if (abilitiesUnchanged) {
+            List<Pokemon> abilityDependentFormes = getAbilityDependentFormes();
+            banned.addAll(abilityDependentFormes);
+        }
+        if (banIrregularAltFormes) {
+            banned.addAll(getIrregularFormes());
+        }
+
+        Pokemon rivalStarter = pokePool.random2EvosPokemon(this.random, allowAltFormes);
+        while ((pickedStarters != null && pickedStarters.contains(rivalStarter)) || banned.contains(rivalStarter) || rivalStarter.actuallyCosmetic) {
+            rivalStarter = pokePool.random2EvosPokemon(this.random, allowAltFormes);
+        }
+
+        setRivalStarter(rivalStarter);
     }
 
     @Override
@@ -3550,6 +3447,8 @@ public abstract class AbstractRomHandler implements RomHandler {
     public void randomizeMovesLearnt(Settings settings) {
         boolean typeThemed = settings.getMovesetsMod() == Settings.MovesetsMod.RANDOM_PREFER_SAME_TYPE;
         boolean noBroken = settings.isBlockBrokenMovesetMoves();
+        boolean noBanned = settings.isNoBannedMoves();
+        boolean onlyBanned = settings.isOnlyRandomizeBannedMoves();
         boolean forceStartingMoves = supportsFourStartingMoves() && settings.isStartWithGuaranteedMoves();
         int forceStartingMoveCount = settings.getGuaranteedMoveCount();
         double goodDamagingPercentage = settings.isMovesetsForceGoodDamaging()
@@ -3559,19 +3458,20 @@ public abstract class AbstractRomHandler implements RomHandler {
 
         // Get current sets
         Map<Integer, List<MoveLearnt>> movesets = this.getMovesLearnt();
+        List<Move> allMoves = this.getMoves();
 
         // Build sets of moves
         List<Move> validMoves = new ArrayList<>();
         List<Move> validDamagingMoves = new ArrayList<>();
         Map<Type, List<Move>> validTypeMoves = new HashMap<>();
         Map<Type, List<Move>> validTypeDamagingMoves = new HashMap<>();
-        createSetsOfMoves(noBroken, validMoves, validDamagingMoves, validTypeMoves, validTypeDamagingMoves);
+        createSetsOfMoves(noBroken, noBanned, settings.getBannedMoves(), validMoves, validDamagingMoves, validTypeMoves, validTypeDamagingMoves);
 
         for (Integer pkmnNum : movesets.keySet()) {
             List<Integer> learnt = new ArrayList<>();
             List<MoveLearnt> moves = movesets.get(pkmnNum);
             int lv1AttackingMove = 0;
-            Pokemon pkmn = findPokemonInPoolWithSpeciesID(mainPokemonListInclFormes, pkmnNum);
+            Pokemon pkmn = findPokemonInPoolWithSpeciesID(mainPokemonPool.mainPokemonListInclFormes, pkmnNum);
             if (pkmn == null) {
                 continue;
             }
@@ -3629,6 +3529,30 @@ public abstract class AbstractRomHandler implements RomHandler {
 
             // Replace moves as needed
             for (int i = 0; i < moves.size(); i++) {
+                if (onlyBanned && !settings.getBannedMoves().contains(allMoves.get(moves.get(i).move))) {
+                    learnt.add(moves.get(i).move);
+                    continue;
+                }
+
+                Move currentMv = allMoves.get(moves.get(i).move);
+                if (currentMv != null && settings.getBannedMoves().contains(currentMv)) {
+                    String replacementName = settings.getBannedMoves().getBannedMoves().get(currentMv.name);
+                    if (replacementName != null && !replacementName.equalsIgnoreCase("random")) {
+                        Move replacementMv = allMoves.stream()
+                                .filter(m -> m != null && m.name.equalsIgnoreCase(replacementName))
+                                .findFirst().orElse(null);
+                        if (replacementMv != null) {
+                            learnt.add(replacementMv.number);
+                            if (i == lv1index) {
+                                lv1AttackingMove = replacementMv.number;
+                            } else if (replacementMv.isGoodDamaging(perfectAccuracy)) {
+                                goodDamagingLeft--;
+                            }
+                            continue;
+                        }
+                    }
+                }
+
                 // should this move be forced damaging?
                 boolean attemptDamaging = i == lv1index || goodDamagingLeft > 0;
 
@@ -3736,24 +3660,27 @@ public abstract class AbstractRomHandler implements RomHandler {
     public void randomizeEggMoves(Settings settings) {
         boolean typeThemed = settings.getMovesetsMod() == Settings.MovesetsMod.RANDOM_PREFER_SAME_TYPE;
         boolean noBroken = settings.isBlockBrokenMovesetMoves();
+        boolean noBanned = settings.isNoBannedMoves();
+        boolean onlyBanned = settings.isOnlyRandomizeBannedMoves();
         double goodDamagingPercentage = settings.isMovesetsForceGoodDamaging()
                 ? settings.getMovesetsGoodDamagingPercent() / 100.0
                 : 0;
 
         // Get current sets
         Map<Integer, List<Integer>> movesets = this.getEggMoves();
+        List<Move> allMoves = this.getMoves();
 
         // Build sets of moves
         List<Move> validMoves = new ArrayList<>();
         List<Move> validDamagingMoves = new ArrayList<>();
         Map<Type, List<Move>> validTypeMoves = new HashMap<>();
         Map<Type, List<Move>> validTypeDamagingMoves = new HashMap<>();
-        createSetsOfMoves(noBroken, validMoves, validDamagingMoves, validTypeMoves, validTypeDamagingMoves);
+        createSetsOfMoves(noBroken, noBanned, settings.getBannedMoves(), validMoves, validDamagingMoves, validTypeMoves, validTypeDamagingMoves);
 
         for (Integer pkmnNum : movesets.keySet()) {
             List<Integer> learnt = new ArrayList<>();
             List<Integer> moves = movesets.get(pkmnNum);
-            Pokemon pkmn = findPokemonInPoolWithSpeciesID(mainPokemonListInclFormes, pkmnNum);
+            Pokemon pkmn = findPokemonInPoolWithSpeciesID(mainPokemonPool.mainPokemonListInclFormes, pkmnNum);
             if (pkmn == null) {
                 continue;
             }
@@ -3772,6 +3699,28 @@ public abstract class AbstractRomHandler implements RomHandler {
 
             // Replace moves as needed
             for (int i = 0; i < moves.size(); i++) {
+                if (onlyBanned && !settings.getBannedMoves().contains(allMoves.get(moves.get(i)))) {
+                    learnt.add(moves.get(i));
+                    continue;
+                }
+
+                Move currentMv = allMoves.get(moves.get(i));
+                if (currentMv != null && settings.getBannedMoves().contains(currentMv)) {
+                    String replacementName = settings.getBannedMoves().getBannedMoves().get(currentMv.name);
+                    if (replacementName != null && !replacementName.equalsIgnoreCase("random")) {
+                        Move replacementMv = allMoves.stream()
+                                .filter(m -> m != null && m.name.equalsIgnoreCase(replacementName))
+                                .findFirst().orElse(null);
+                        if (replacementMv != null) {
+                            learnt.add(replacementMv.number);
+                            if (replacementMv.isGoodDamaging(perfectAccuracy)) {
+                                goodDamagingLeft--;
+                            }
+                            continue;
+                        }
+                    }
+                }
+
                 // should this move be forced damaging?
                 boolean attemptDamaging = goodDamagingLeft > 0;
 
@@ -3857,6 +3806,11 @@ public abstract class AbstractRomHandler implements RomHandler {
 
     private void createSetsOfMoves(boolean noBroken, List<Move> validMoves, List<Move> validDamagingMoves,
             Map<Type, List<Move>> validTypeMoves, Map<Type, List<Move>> validTypeDamagingMoves) {
+        createSetsOfMoves(noBroken, false, null, validMoves, validDamagingMoves, validTypeMoves, validTypeDamagingMoves);
+    }
+
+    private void createSetsOfMoves(boolean noBroken, boolean noBanned, BannedMoveSet customBanned, List<Move> validMoves, List<Move> validDamagingMoves,
+            Map<Type, List<Move>> validTypeMoves, Map<Type, List<Move>> validTypeDamagingMoves) {
         List<Move> allMoves = this.getMoves();
         List<Integer> hms = this.getHMMoves();
         Set<Integer> allBanned = new HashSet<Integer>(noBroken ? this.getGameBreakingMoves() : Collections.EMPTY_SET);
@@ -3866,7 +3820,8 @@ public abstract class AbstractRomHandler implements RomHandler {
         allBanned.addAll(this.getIllegalMoves());
 
         for (Move mv : allMoves) {
-            if (mv != null && !GlobalConstants.bannedRandomMoves[mv.number] && !allBanned.contains(mv.number)) {
+            if (mv != null && !GlobalConstants.bannedRandomMoves[mv.number] && !allBanned.contains(mv.number)
+                    && (!noBanned || customBanned == null || !customBanned.contains(mv))) {
                 validMoves.add(mv);
                 if (mv.type != null) {
                     if (!validTypeMoves.containsKey(mv.type)) {
@@ -4073,13 +4028,12 @@ public abstract class AbstractRomHandler implements RomHandler {
         boolean allowAltFormes = settings.isAllowStarterAltFormes();
         boolean banIrregularAltFormes = settings.isBanIrregularAltFormes();
 
-        List<Pokemon> romPokemon = getPokemonInclFormes()
-                .stream()
-                .filter(pk -> pk == null || !pk.actuallyCosmetic)
-                .collect(Collectors.toList());
+        PokemonPool allPokePool = this.getAllPokemonPool();
+        PokemonPool pokePool = this.getPokemonPool();
 
         List<Pokemon> banned = getBannedFormesForPlayerPokemon();
         pickedStarters = new ArrayList<>();
+
         if (abilitiesUnchanged) {
             List<Pokemon> abilityDependentFormes = getAbilityDependentFormes();
             banned.addAll(abilityDependentFormes);
@@ -4089,61 +4043,41 @@ public abstract class AbstractRomHandler implements RomHandler {
         }
         // loop to add chosen pokemon to banned, preventing it from being a random
         // option.
-        for (int i = 0; i < customStarters.length; i = i + 1) {
-            if (!(customStarters[i] - 1 == 0)) {
-                banned.add(romPokemon.get(customStarters[i] - 1));
+        for (int customStarter : customStarters) {
+            if (!(customStarter == 0)) {
+                banned.add(allPokePool.getPokemon(customStarter));
             }
-        }
-        if (customStarters[0] - 1 == 0) {
-            Pokemon pkmn = allowAltFormes ? randomPokemonInclFormes() : randomPokemon();
-            while (pickedStarters.contains(pkmn) || banned.contains(pkmn) || pkmn.actuallyCosmetic) {
-                pkmn = allowAltFormes ? randomPokemonInclFormes() : randomPokemon();
-            }
-            pickedStarters.add(pkmn);
-        } else {
-            Pokemon pkmn1 = romPokemon.get(customStarters[0] - 1);
-            pickedStarters.add(pkmn1);
-        }
-        if (customStarters[1] - 1 == 0) {
-            Pokemon pkmn = allowAltFormes ? randomPokemonInclFormes() : randomPokemon();
-            while (pickedStarters.contains(pkmn) || banned.contains(pkmn) || pkmn.actuallyCosmetic) {
-                pkmn = allowAltFormes ? randomPokemonInclFormes() : randomPokemon();
-            }
-            pickedStarters.add(pkmn);
-        } else {
-            Pokemon pkmn2 = romPokemon.get(customStarters[1] - 1);
-            pickedStarters.add(pkmn2);
         }
 
-        if (isYellow()) {
-            setStarters(pickedStarters);
-        } else {
-            if (customStarters[2] - 1 == 0) {
-                Pokemon pkmn = allowAltFormes ? randomPokemonInclFormes() : randomPokemon();
+        for (int i = 0; i < Math.min(starterCount(), 3); i ++) {
+            Pokemon pkmn;
+            if (customStarters[i] == 0) {
+                pkmn = pokePool.randomPokemon(random, allowAltFormes);
                 while (pickedStarters.contains(pkmn) || banned.contains(pkmn) || pkmn.actuallyCosmetic) {
-                    pkmn = allowAltFormes ? randomPokemonInclFormes() : randomPokemon();
+                    pkmn = pokePool.randomPokemon(random, allowAltFormes);
+                }
+            } else {
+                pkmn = allPokePool.getPokemon(customStarters[i]);
+            }
+            pickedStarters.add(pkmn);
+        }
+
+        if (starterCount() > 3) {
+            for (int i = 3; i < starterCount(); i++) {
+                int tries = 0;
+                Pokemon pkmn = pokePool.random2EvosPokemon(random, allowAltFormes);
+                while (tries < 1000 && (pickedStarters.contains(pkmn) || banned.contains(pkmn))) {
+                    // If too many pokemon are banned to satisfy the condition this breaks the infinite loop.
+                    if (settings.getCurrentRestrictions().ban_pokemon) {
+                        tries++;
+                    }
+                    pkmn = pokePool.random2EvosPokemon(random, allowAltFormes);
                 }
                 pickedStarters.add(pkmn);
-            } else {
-                Pokemon pkmn3 = romPokemon.get(customStarters[2] - 1);
-                pickedStarters.add(pkmn3);
             }
-            if (starterCount() > 3) {
-                for (int i = 3; i < starterCount(); i++) {
-                    int tries = 0;
-                    Pokemon pkmn = random2EvosPokemon(allowAltFormes);
-                    while (tries < 1000 && (pickedStarters.contains(pkmn) || banned.contains(pkmn))) {
-                        if (settings.getCurrentRestrictions().ban_pokemon) {
-                            tries++;
-                        }
-                        pkmn = random2EvosPokemon(allowAltFormes);
-                    }
-                    pickedStarters.add(pkmn);
-                }
-                setStarters(pickedStarters);
-            } else {
-                setStarters(pickedStarters);
-            }
+            setStarters(pickedStarters);
+        } else {
+            setStarters(pickedStarters);
         }
     }
 
@@ -4152,6 +4086,8 @@ public abstract class AbstractRomHandler implements RomHandler {
         boolean abilitiesUnchanged = settings.getAbilitiesMod() == Settings.AbilitiesMod.UNCHANGED;
         boolean allowAltFormes = settings.isAllowStarterAltFormes();
         boolean banIrregularAltFormes = settings.isBanIrregularAltFormes();
+
+        PokemonPool pokePool = this.getPokemonPool();
 
         int starterCount = starterCount();
         pickedStarters = new ArrayList<>();
@@ -4165,12 +4101,12 @@ public abstract class AbstractRomHandler implements RomHandler {
         }
         for (int i = 0; i < starterCount; i++) {
             int tries = 0;
-            Pokemon pkmn = allowAltFormes ? randomPokemonInclFormes() : randomPokemon();
+            Pokemon pkmn = pokePool.randomPokemon(this.random, allowAltFormes);
             while (tries < 1000 && (pickedStarters.contains(pkmn) || banned.contains(pkmn) || pkmn.actuallyCosmetic)) {
                 if (settings.getCurrentRestrictions().ban_pokemon) {
                     tries++;
                 }
-                pkmn = allowAltFormes ? randomPokemonInclFormes() : randomPokemon();
+                pkmn = pokePool.randomPokemon(this.random, allowAltFormes);
             }
             pickedStarters.add(pkmn);
         }
@@ -4183,6 +4119,8 @@ public abstract class AbstractRomHandler implements RomHandler {
         boolean allowAltFormes = settings.isAllowStarterAltFormes();
         boolean banIrregularAltFormes = settings.isBanIrregularAltFormes();
 
+        PokemonPool pokePool = this.getPokemonPool();
+
         int starterCount = starterCount();
         pickedStarters = new ArrayList<>();
         List<Pokemon> banned = getBannedFormesForPlayerPokemon();
@@ -4196,12 +4134,12 @@ public abstract class AbstractRomHandler implements RomHandler {
 
         for (int i = 0; i < starterCount; i++) {
             int tries = 0;
-            Pokemon pkmn = random2EvosPokemon(allowAltFormes);
+            Pokemon pkmn = pokePool.random2EvosPokemon(this.random, allowAltFormes);
             while (tries < 1000 && (pickedStarters.contains(pkmn) || banned.contains(pkmn))) {
                 if (settings.getCurrentRestrictions().ban_pokemon) {
                     tries++;
                 }
-                pkmn = random2EvosPokemon(allowAltFormes);
+                pkmn = pokePool.random2EvosPokemon(this.random, allowAltFormes);
             }
             pickedStarters.add(pkmn);
         }
@@ -4211,6 +4149,11 @@ public abstract class AbstractRomHandler implements RomHandler {
     @Override
     public List<Pokemon> getPickedStarters() {
         return pickedStarters;
+    }
+
+    @Override
+    public Pokemon getPickedRivalStarter() {
+        return pickedRivalStarter;
     }
 
     @Override
@@ -4233,6 +4176,9 @@ public abstract class AbstractRomHandler implements RomHandler {
         List<Pokemon> banned = this.bannedForStaticPokemon();
         banned.addAll(this.getBannedFormesForPlayerPokemon());
         BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
+
+        PokemonPool pokePool = this.getPokemonPool();
+
         if (!abilitiesAreRandomized) {
             List<Pokemon> abilityDependentFormes = getAbilityDependentFormes();
             banned.addAll(abilityDependentFormes);
@@ -4249,23 +4195,23 @@ public abstract class AbstractRomHandler implements RomHandler {
         }
 
         if (swapLegendaries) {
-            List<Pokemon> legendariesLeft = new ArrayList<>(onlyLegendaryList);
+            List<Pokemon> legendariesLeft = new ArrayList<>(pokePool.onlyLegendaryList);
             if (allowAltFormes) {
-                legendariesLeft.addAll(onlyLegendaryAltsList);
+                legendariesLeft.addAll(pokePool.onlyLegendaryAltsList);
                 legendariesLeft = legendariesLeft
                         .stream()
                         .filter(pk -> !pk.actuallyCosmetic)
                         .collect(Collectors.toList());
             }
-            List<Pokemon> nonlegsLeft = new ArrayList<>(noLegendaryList);
+            List<Pokemon> nonlegsLeft = new ArrayList<>(pokePool.noLegendaryList);
             if (allowAltFormes) {
-                nonlegsLeft.addAll(noLegendaryAltsList);
+                nonlegsLeft.addAll(pokePool.noLegendaryAltsList);
                 nonlegsLeft = nonlegsLeft
                         .stream()
                         .filter(pk -> !pk.actuallyCosmetic)
                         .collect(Collectors.toList());
             }
-            List<Pokemon> ultraBeastsLeft = new ArrayList<>(ultraBeastList);
+            List<Pokemon> ultraBeastsLeft = new ArrayList<>(pokePool.ultraBeastList);
             legendariesLeft.removeAll(banned);
             nonlegsLeft.removeAll(banned);
             ultraBeastsLeft.removeAll(banned);
@@ -4286,7 +4232,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                 Pokemon newPK;
                 if (old.pkmn.isLegendary()) {
                     if (reallySwapMegaEvos && old.canMegaEvolve()) {
-                        newPK = getMegaEvoPokemon(onlyLegendaryList, legendariesLeft, newStatic);
+                        newPK = getMegaEvoPokemon(pokePool.onlyLegendaryList, legendariesLeft, newStatic);
                     } else {
                         if (old.restrictedPool) {
                             newPK = getRestrictedPokemon(legendariesPool, legendariesLeft, old);
@@ -4300,7 +4246,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                     if (legendariesLeft.size() == 0) {
                         legendariesLeft.addAll(legendariesPool);
                     }
-                } else if (ultraBeastList.contains(old.pkmn)) {
+                } else if (pokePool.ultraBeastList.contains(old.pkmn)) {
                     if (old.restrictedPool) {
                         newPK = getRestrictedPokemon(ultraBeastsPool, ultraBeastsLeft, old);
                     } else {
@@ -4314,7 +4260,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                     }
                 } else {
                     if (reallySwapMegaEvos && old.canMegaEvolve()) {
-                        newPK = getMegaEvoPokemon(noLegendaryList, nonlegsLeft, newStatic);
+                        newPK = getMegaEvoPokemon(pokePool.noLegendaryList, nonlegsLeft, newStatic);
                     } else {
                         if (old.restrictedPool) {
                             newPK = getRestrictedPokemon(nonlegsPool, nonlegsLeft, old);
@@ -4334,12 +4280,12 @@ public abstract class AbstractRomHandler implements RomHandler {
                 }
             }
         } else if (similarStrength) {
-            List<Pokemon> listInclFormesExclCosmetics = mainPokemonListInclFormes
+            List<Pokemon> listInclFormesExclCosmetics = pokePool.mainPokemonListInclFormes
                     .stream()
                     .filter(pk -> !pk.actuallyCosmetic)
                     .collect(Collectors.toList());
             List<Pokemon> pokemonLeft = new ArrayList<>(
-                    !allowAltFormes ? mainPokemonList : listInclFormesExclCosmetics);
+                    !allowAltFormes ? pokePool.mainPokemonList : listInclFormesExclCosmetics);
             pokemonLeft.removeAll(banned);
 
             List<Pokemon> pokemonPool = new ArrayList<>(pokemonLeft);
@@ -4361,7 +4307,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                 Integer oldBST = oldPK.bstForPowerLevels();
                 if (oldBST >= 600 && limit600) {
                     if (reallySwapMegaEvos && old.canMegaEvolve()) {
-                        newPK = getMegaEvoPokemon(mainPokemonList, pokemonLeft, newStatic);
+                        newPK = getMegaEvoPokemon(pokePool.mainPokemonList, pokemonLeft, newStatic);
                     } else {
                         if (old.restrictedPool) {
                             newPK = getRestrictedPokemon(pokemonPool, pokemonLeft, old);
@@ -4375,7 +4321,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                             ? limitMainGameLegendaries && mainGameLegendaries.contains(oldPK.number)
                             : limitMainGameLegendaries && mainGameLegendaries.contains(oldPK.baseForme.number);
                     if (reallySwapMegaEvos && old.canMegaEvolve()) {
-                        List<Pokemon> megaEvoPokemonLeft = megaEvolutionsList
+                        List<Pokemon> megaEvoPokemonLeft = pokePool.megaEvolutionsList
                                 .stream()
                                 .filter(mega -> mega.method == 1)
                                 .map(mega -> mega.from)
@@ -4383,12 +4329,12 @@ public abstract class AbstractRomHandler implements RomHandler {
                                 .filter(pokemonLeft::contains)
                                 .collect(Collectors.toList());
                         if (megaEvoPokemonLeft.isEmpty()) {
-                            megaEvoPokemonLeft = megaEvolutionsList
+                            megaEvoPokemonLeft = pokePool.megaEvolutionsList
                                     .stream()
                                     .filter(mega -> mega.method == 1)
                                     .map(mega -> mega.from)
                                     .distinct()
-                                    .filter(mainPokemonList::contains)
+                                    .filter(pokePool.mainPokemonList::contains)
                                     .collect(Collectors.toList());
                         }
                         newPK = pickStaticPowerLvlReplacement(
@@ -4436,12 +4382,12 @@ public abstract class AbstractRomHandler implements RomHandler {
                 }
             }
         } else { // Completely random
-            List<Pokemon> listInclFormesExclCosmetics = mainPokemonListInclFormes
+            List<Pokemon> listInclFormesExclCosmetics = pokePool.mainPokemonListInclFormes
                     .stream()
                     .filter(pk -> !pk.actuallyCosmetic)
                     .collect(Collectors.toList());
             List<Pokemon> pokemonLeft = new ArrayList<>(
-                    !allowAltFormes ? mainPokemonList : listInclFormesExclCosmetics);
+                    !allowAltFormes ? pokePool.mainPokemonList : listInclFormesExclCosmetics);
             pokemonLeft.removeAll(banned);
 
             List<Pokemon> pokemonPool = new ArrayList<>(pokemonLeft);
@@ -4456,7 +4402,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                 StaticEncounter newStatic = cloneStaticEncounter(old);
                 Pokemon newPK;
                 if (reallySwapMegaEvos && old.canMegaEvolve()) {
-                    newPK = getMegaEvoPokemon(mainPokemonList, pokemonLeft, newStatic);
+                    newPK = getMegaEvoPokemon(pokePool.mainPokemonList, pokemonLeft, newStatic);
                 } else {
                     if (old.restrictedPool) {
                         newPK = getRestrictedPokemon(pokemonPool, pokemonLeft, old);
@@ -4595,7 +4541,7 @@ public abstract class AbstractRomHandler implements RomHandler {
     }
 
     private Pokemon getMegaEvoPokemon(List<Pokemon> fullList, List<Pokemon> pokemonLeft, StaticEncounter newStatic) {
-        List<MegaEvolution> megaEvos = megaEvolutionsList;
+        List<MegaEvolution> megaEvos = mainPokemonPool.megaEvolutionsList;
         List<Pokemon> megaEvoPokemon = megaEvos
                 .stream()
                 .filter(mega -> mega.method == 1)
@@ -5492,7 +5438,10 @@ public abstract class AbstractRomHandler implements RomHandler {
         boolean randomOT = settings.isRandomizeInGameTradesOTs();
         boolean randomStats = settings.isRandomizeInGameTradesIVs();
         boolean randomItem = settings.isRandomizeInGameTradesItems();
+        boolean allowAltFormes = false;
         CustomNamesSet customNames = settings.getCustomNames();
+
+        PokemonPool pokePool = this.getPokemonPool();
 
         BannedPokemonSet bannedPokemon = settings.getBannedPokemon();
 
@@ -5540,13 +5489,13 @@ public abstract class AbstractRomHandler implements RomHandler {
             }
             // pick new given pokemon
             Pokemon oldgiven = trade.givenPokemon;
-            Pokemon given = this.randomPokemon();
+            Pokemon given = pokePool.randomPokemon(random, allowAltFormes);
             int tries = 0;
             while (usedGivens.contains(given) && tries < 1000) {
                 if (settings.getCurrentRestrictions().ban_pokemon) {
                     tries++;
                 }
-                given = this.randomPokemon();
+                given = pokePool.randomPokemon(random, allowAltFormes);
             }
             usedGivens.add(given);
             trade.givenPokemon = given;
@@ -5560,13 +5509,13 @@ public abstract class AbstractRomHandler implements RomHandler {
                     if (settings.isOnlyRandomizeBannedTrades() && !bannedPokemon.contains(trade.requestedPokemon)) {
                         continue;
                     }
-                    Pokemon request = this.randomPokemon();
+                    Pokemon request = pokePool.randomPokemon(random, allowAltFormes);
                     int innerTries = 0;
                     while (innerTries < 1000 && (usedRequests.contains(request) || request == given)) {
                         if (settings.getCurrentRestrictions().ban_pokemon) {
                             innerTries++;
                         }
-                        request = this.randomPokemon();
+                        request = pokePool.randomPokemon(random, allowAltFormes);
                     }
                     usedRequests.add(request);
                     trade.requestedPokemon = request;
@@ -5668,9 +5617,9 @@ public abstract class AbstractRomHandler implements RomHandler {
         checkPokemonRestrictions();
         List<Pokemon> pokemonPool;
         if (this.altFormesCanHaveDifferentEvolutions()) {
-            pokemonPool = new ArrayList<>(mainPokemonListInclFormes);
+            pokemonPool = new ArrayList<>(mainPokemonPool.mainPokemonListInclFormes);
         } else {
-            pokemonPool = new ArrayList<>(mainPokemonList);
+            pokemonPool = new ArrayList<>(mainPokemonPool.mainPokemonList);
         }
         List<Pokemon> actuallyCosmeticPokemonPool = new ArrayList<>();
         int stageLimit = limitToThreeStages ? 3 : 10;
@@ -5742,10 +5691,10 @@ public abstract class AbstractRomHandler implements RomHandler {
                     // Pick a Pokemon as replacement
                     replacements.clear();
 
-                    List<Pokemon> chosenList = allowAltFormes ? mainPokemonListInclFormes
+                    List<Pokemon> chosenList = allowAltFormes ? mainPokemonPool.mainPokemonListInclFormes
                             .stream()
                             .filter(pk -> !pk.actuallyCosmetic)
-                            .collect(Collectors.toList()) : mainPokemonList;
+                            .collect(Collectors.toList()) : mainPokemonPool.mainPokemonList;
                     // Step 1: base filters
                     for (Pokemon pk : chosenList) {
                         // Prevent evolving into oneself (mandatory)
@@ -5914,9 +5863,9 @@ public abstract class AbstractRomHandler implements RomHandler {
         checkPokemonRestrictions();
         List<Pokemon> pokemonPool;
         if (this.altFormesCanHaveDifferentEvolutions()) {
-            pokemonPool = new ArrayList<>(mainPokemonListInclFormes);
+            pokemonPool = new ArrayList<>(mainPokemonPool.mainPokemonListInclFormes);
         } else {
-            pokemonPool = new ArrayList<>(mainPokemonList);
+            pokemonPool = new ArrayList<>(mainPokemonPool.mainPokemonList);
         }
         List<Pokemon> actuallyCosmeticPokemonPool = new ArrayList<>();
 
@@ -5974,10 +5923,10 @@ public abstract class AbstractRomHandler implements RomHandler {
                 // Pick a Pokemon as replacement
                 replacements.clear();
 
-                List<Pokemon> chosenList = allowAltFormes ? mainPokemonListInclFormes
+                List<Pokemon> chosenList = allowAltFormes ? mainPokemonPool.mainPokemonListInclFormes
                         .stream()
                         .filter(pk -> !pk.actuallyCosmetic)
-                        .collect(Collectors.toList()) : mainPokemonList;
+                        .collect(Collectors.toList()) : mainPokemonPool.mainPokemonList;
                 // Step 1: base filters
                 for (Pokemon pk : chosenList) {
                     // Prevent evolving into oneself (mandatory)
@@ -6685,7 +6634,7 @@ public abstract class AbstractRomHandler implements RomHandler {
 
     private List<Pokemon> pokemonOfType(Type type, boolean noLegendaries) {
         List<Pokemon> typedPokes = new ArrayList<>();
-        for (Pokemon pk : mainPokemonList) {
+        for (Pokemon pk : mainPokemonPool.mainPokemonList) {
             if (pk != null && (!noLegendaries || !pk.isLegendary()) && !pk.actuallyCosmetic) {
                 if (pk.primaryType == type || pk.secondaryType == type) {
                     typedPokes.add(pk);
@@ -6697,7 +6646,7 @@ public abstract class AbstractRomHandler implements RomHandler {
 
     private List<Pokemon> pokemonOfTypeInclFormes(Type type, boolean noLegendaries) {
         List<Pokemon> typedPokes = new ArrayList<>();
-        for (Pokemon pk : mainPokemonListInclFormes) {
+        for (Pokemon pk : mainPokemonPool.mainPokemonListInclFormes) {
             if (pk != null && !pk.actuallyCosmetic && (!noLegendaries || !pk.isLegendary())) {
                 if (pk.primaryType == type || pk.secondaryType == type) {
                     typedPokes.add(pk);
@@ -6879,7 +6828,123 @@ public abstract class AbstractRomHandler implements RomHandler {
                 }
             }
         }
+    }
 
+    private void setRivalStarterUpdate(List<Trainer> currentTrainers, String prefix, Pokemon pokemon) {
+        // Find the highest rival battle #
+        int highestRivalNum = 0;
+        for (Trainer t : currentTrainers) {
+            if (t.tag != null && t.tag.startsWith(prefix)) {
+                highestRivalNum = Math.max(highestRivalNum,
+                        Integer.parseInt(t.tag.substring(prefix.length(), t.tag.indexOf('-'))));
+            }
+        }
+
+        if (highestRivalNum == 0) {
+            // This rival type not used in this game
+            return;
+        }
+
+        // Yellow needs its own case, unfortunately.
+        if (isYellow()) {
+            // The rival's starter is index 1
+            Pokemon rivalStarter = pokemon;
+            int timesEvolves = numEvolutions(rivalStarter, 2);
+            // Yellow does not have abilities
+            int abilitySlot = 0;
+            // Apply evolutions as appropriate
+            if (timesEvolves == 0) {
+                for (int j = 1; j <= 3; j++) {
+                    changeStarterWithTag(currentTrainers, prefix + j + "-0", rivalStarter, abilitySlot);
+                }
+                for (int j = 4; j <= 7; j++) {
+                    for (int i = 0; i < 3; i++) {
+                        changeStarterWithTag(currentTrainers, prefix + j + "-" + i, rivalStarter, abilitySlot);
+                    }
+                }
+            } else if (timesEvolves == 1) {
+                for (int j = 1; j <= 3; j++) {
+                    changeStarterWithTag(currentTrainers, prefix + j + "-0", rivalStarter, abilitySlot);
+                }
+                rivalStarter = pickRandomEvolutionOf(rivalStarter, false);
+                for (int j = 4; j <= 7; j++) {
+                    for (int i = 0; i < 3; i++) {
+                        changeStarterWithTag(currentTrainers, prefix + j + "-" + i, rivalStarter, abilitySlot);
+                    }
+                }
+            } else if (timesEvolves == 2) {
+                for (int j = 1; j <= 2; j++) {
+                    changeStarterWithTag(currentTrainers, prefix + j + "-" + 0, rivalStarter, abilitySlot);
+                }
+                rivalStarter = pickRandomEvolutionOf(rivalStarter, true);
+                changeStarterWithTag(currentTrainers, prefix + "3-0", rivalStarter, abilitySlot);
+                for (int i = 0; i < 3; i++) {
+                    changeStarterWithTag(currentTrainers, prefix + "4-" + i, rivalStarter, abilitySlot);
+                }
+                rivalStarter = pickRandomEvolutionOf(rivalStarter, false);
+                for (int j = 5; j <= 7; j++) {
+                    for (int i = 0; i < 3; i++) {
+                        changeStarterWithTag(currentTrainers, prefix + j + "-" + i, rivalStarter, abilitySlot);
+                    }
+                }
+            }
+        } else {
+            // Replace each starter as appropriate
+            // Use level to determine when to evolve, not number anymore
+            for (int i = 0; i < 3; i++) {
+                // Rival's starters are pokemonOffset over from each of ours
+                Pokemon thisStarter = pokemon;
+
+                int timesEvolves = numEvolutions(thisStarter, 2);
+                int abilitySlot = getRandomAbilitySlot(thisStarter);
+                while (abilitySlot == 3) {
+                    // Since starters never have hidden abilities, the rival's starter shouldn't
+                    // either
+                    abilitySlot = getRandomAbilitySlot(thisStarter);
+                }
+                // If a fully evolved pokemon, use throughout
+                // Otherwise split by evolutions as appropriate
+                if (timesEvolves == 0) {
+                    for (int j = 1; j <= highestRivalNum; j++) {
+                        changeStarterWithTag(currentTrainers, prefix + j + "-" + i, thisStarter, abilitySlot);
+                    }
+                } else if (timesEvolves == 1) {
+                    int j = 1;
+                    for (; j <= highestRivalNum / 2; j++) {
+                        if (getLevelOfStarter(currentTrainers, prefix + j + "-" + i) >= 30) {
+                            break;
+                        }
+                        changeStarterWithTag(currentTrainers, prefix + j + "-" + i, thisStarter, abilitySlot);
+                    }
+                    thisStarter = pickRandomEvolutionOf(thisStarter, false);
+                    int evolvedAbilitySlot = getValidAbilitySlotFromOriginal(thisStarter, abilitySlot);
+                    for (; j <= highestRivalNum; j++) {
+                        changeStarterWithTag(currentTrainers, prefix + j + "-" + i, thisStarter, evolvedAbilitySlot);
+                    }
+                } else if (timesEvolves == 2) {
+                    int j = 1;
+                    for (; j <= highestRivalNum; j++) {
+                        if (getLevelOfStarter(currentTrainers, prefix + j + "-" + i) >= 16) {
+                            break;
+                        }
+                        changeStarterWithTag(currentTrainers, prefix + j + "-" + i, thisStarter, abilitySlot);
+                    }
+                    thisStarter = pickRandomEvolutionOf(thisStarter, true);
+                    int evolvedAbilitySlot = getValidAbilitySlotFromOriginal(thisStarter, abilitySlot);
+                    for (; j <= highestRivalNum; j++) {
+                        if (getLevelOfStarter(currentTrainers, prefix + j + "-" + i) >= 36) {
+                            break;
+                        }
+                        changeStarterWithTag(currentTrainers, prefix + j + "-" + i, thisStarter, evolvedAbilitySlot);
+                    }
+                    thisStarter = pickRandomEvolutionOf(thisStarter, false);
+                    evolvedAbilitySlot = getValidAbilitySlotFromOriginal(thisStarter, abilitySlot);
+                    for (; j <= highestRivalNum; j++) {
+                        changeStarterWithTag(currentTrainers, prefix + j + "-" + i, thisStarter, evolvedAbilitySlot);
+                    }
+                }
+            }
+        }
     }
 
     private Pokemon pickRandomEvolutionOf(Pokemon base, boolean mustEvolveItself) {
@@ -7074,7 +7139,7 @@ public abstract class AbstractRomHandler implements RomHandler {
         List<Pokemon> withoutBannedPokemon;
 
         if (swapMegaEvos) {
-            pickFrom = megaEvolutionsList
+            pickFrom = mainPokemonPool.megaEvolutionsList
                     .stream()
                     .filter(mega -> mega.method == 1)
                     .map(mega -> mega.from)
@@ -7239,28 +7304,24 @@ public abstract class AbstractRomHandler implements RomHandler {
         return zonesToEncounters;
     }
 
-    public Pokemon pickEntirelyRandomPokemon(boolean includeFormes, boolean noLegendaries, EncounterSet area,
+    public Pokemon pickEntirelyRandomPokemon(PokemonPool pokePool, Boolean includeFormes, boolean noLegendaries, EncounterSet area,
             List<Pokemon> banned) {
         Pokemon result;
-        Pokemon randomNonLegendaryPokemon = includeFormes ? randomNonLegendaryPokemonInclFormes()
-                : randomNonLegendaryPokemon();
-        Pokemon randomPokemon = includeFormes ? randomPokemonInclFormes() : randomPokemon();
+        Pokemon randomNonLegendaryPokemon = pokePool.randomNonLegendaryPokemon(random, includeFormes);
+        Pokemon randomPokemon = pokePool.randomPokemon(random, includeFormes);
         result = noLegendaries ? randomNonLegendaryPokemon : randomPokemon;
         while (result.actuallyCosmetic) {
-            randomNonLegendaryPokemon = includeFormes ? randomNonLegendaryPokemonInclFormes()
-                    : randomNonLegendaryPokemon();
-            randomPokemon = includeFormes ? randomPokemonInclFormes() : randomPokemon();
+            randomNonLegendaryPokemon = pokePool.randomNonLegendaryPokemon(random, includeFormes);
+            randomPokemon = pokePool.randomPokemon(random, includeFormes);
             result = noLegendaries ? randomNonLegendaryPokemon : randomPokemon;
         }
         while (banned.contains(result) || area.bannedPokemon.contains(result)) {
-            randomNonLegendaryPokemon = includeFormes ? randomNonLegendaryPokemonInclFormes()
-                    : randomNonLegendaryPokemon();
-            randomPokemon = includeFormes ? randomPokemonInclFormes() : randomPokemon();
+            randomNonLegendaryPokemon = pokePool.randomNonLegendaryPokemon(random, includeFormes);
+            randomPokemon = pokePool.randomPokemon(random, includeFormes);
             result = noLegendaries ? randomNonLegendaryPokemon : randomPokemon;
             while (result.actuallyCosmetic) {
-                randomNonLegendaryPokemon = includeFormes ? randomNonLegendaryPokemonInclFormes()
-                        : randomNonLegendaryPokemon();
-                randomPokemon = includeFormes ? randomPokemonInclFormes() : randomPokemon();
+                randomNonLegendaryPokemon = pokePool.randomNonLegendaryPokemon(random, includeFormes);
+                randomPokemon = pokePool.randomPokemon(random, includeFormes);
                 result = noLegendaries ? randomNonLegendaryPokemon : randomPokemon;
             }
         }
@@ -7293,8 +7354,7 @@ public abstract class AbstractRomHandler implements RomHandler {
     @Override
     public List<Pokemon> getAbilityDependentFormes() {
         List<Pokemon> abilityDependentFormes = new ArrayList<>();
-        for (int i = 0; i < mainPokemonListInclFormes.size(); i++) {
-            Pokemon pokemon = mainPokemonListInclFormes.get(i);
+        for (Pokemon pokemon : mainPokemonPool.mainPokemonListInclFormes) {
             if (pokemon.baseForme != null) {
                 if (pokemon.baseForme.number == Species.castform) {
                     // All alternate Castform formes
@@ -7317,8 +7377,7 @@ public abstract class AbstractRomHandler implements RomHandler {
     @Override
     public List<Pokemon> getBannedFormesForPlayerPokemon() {
         List<Pokemon> bannedFormes = new ArrayList<>();
-        for (int i = 0; i < mainPokemonListInclFormes.size(); i++) {
-            Pokemon pokemon = mainPokemonListInclFormes.get(i);
+        for (Pokemon pokemon : mainPokemonPool.mainPokemonListInclFormes) {
             if (pokemon.baseForme != null) {
                 if (pokemon.baseForme.number == Species.giratina) {
                     // Giratina-O is banned because it reverts back to Altered Forme if
@@ -7363,11 +7422,11 @@ public abstract class AbstractRomHandler implements RomHandler {
         if (banIrregularAltFormes) {
             banned.addAll(getIrregularFormes());
         }
-        List<Pokemon> listInclFormesExclCosmetics = mainPokemonListInclFormes
+        List<Pokemon> listInclFormesExclCosmetics = mainPokemonPool.mainPokemonListInclFormes
                 .stream()
                 .filter(pk -> !pk.actuallyCosmetic)
                 .collect(Collectors.toList());
-        List<Pokemon> pokemonLeft = new ArrayList<>(!allowAltFormes ? mainPokemonList : listInclFormesExclCosmetics);
+        List<Pokemon> pokemonLeft = new ArrayList<>(!allowAltFormes ? mainPokemonPool.mainPokemonList : listInclFormesExclCosmetics);
         pokemonLeft.removeAll(banned);
         for (TotemPokemon old : currentTotemPokemon) {
             TotemPokemon newTotem = new TotemPokemon();
@@ -7399,7 +7458,7 @@ public abstract class AbstractRomHandler implements RomHandler {
                     newTotem.level = Math.min(100, (int) Math.round(newTotem.level * (1 + levelModifier / 100.0)));
                 }
                 if (pokemonLeft.size() == 0) {
-                    pokemonLeft.addAll(!allowAltFormes ? mainPokemonList : listInclFormesExclCosmetics);
+                    pokemonLeft.addAll(!allowAltFormes ? mainPokemonPool.mainPokemonList : listInclFormesExclCosmetics);
                     pokemonLeft.removeAll(banned);
                 }
             } else {
@@ -7441,7 +7500,7 @@ public abstract class AbstractRomHandler implements RomHandler {
 
                     newTotem.allies.put(oldAllyIndex, newAlly);
                     if (pokemonLeft.size() == 0) {
-                        pokemonLeft.addAll(!allowAltFormes ? mainPokemonList : listInclFormesExclCosmetics);
+                        pokemonLeft.addAll(!allowAltFormes ? mainPokemonPool.mainPokemonList : listInclFormesExclCosmetics);
                         pokemonLeft.removeAll(banned);
                     }
                 }

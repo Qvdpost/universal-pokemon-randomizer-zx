@@ -308,8 +308,10 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
         loadPokemonStats();
         loadMoves();
 
-        pokemonListInclFormes = Arrays.asList(pokes);
-        pokemonList = Arrays.asList(Arrays.copyOfRange(pokes,0,Gen7Constants.getPokemonCount(romEntry.romType) + 1));
+        pokemonListInclFormes = Arrays.asList(pokes.clone());
+        pokemonList = Arrays.asList(Arrays.copyOfRange(pokes.clone(),0,Gen7Constants.getPokemonCount(romEntry.romType) + 1));
+
+        swapAlolan();
 
         itemNames = getStrings(false,romEntry.getInt("ItemNamesTextOffset"));
         abilityNames = getStrings(false,romEntry.getInt("AbilityNamesTextOffset"));
@@ -1403,6 +1405,10 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
     private Pokemon getPokemonForEncounter(int species, int forme) {
         Pokemon pokemon = pokes[species];
 
+        if (pokemon.baseForme != null && Gen7Constants.speciesWithAlolanForms.contains(pokemon.baseForme.number)) {
+            return pokemon;
+        }
+
         // If the forme is purely cosmetic, just use the base forme as the Pokemon
         // for this encounter (the cosmetic forme will be stored in the encounter).
         if (forme <= pokemon.cosmeticForms || forme == 30 || forme == 31) {
@@ -2401,6 +2407,7 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
         available |= MiscTweak.BAN_LUCKY_EGG.getValue();
         available |= MiscTweak.SOS_BATTLES_FOR_ALL.getValue();
         available |= MiscTweak.RETAIN_ALT_FORMES.getValue();
+        available |= MiscTweak.NO_SOS_BATTLES.getValue();
         return available;
     }
 
@@ -2413,6 +2420,8 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
             nonBadItems.banSingles(Items.luckyEgg);
         } else if (tweak == MiscTweak.SOS_BATTLES_FOR_ALL) {
             positiveCallRates();
+        } else if (tweak == MiscTweak.NO_SOS_BATTLES) {
+            zeroCallRates();
         } else if (tweak == MiscTweak.RETAIN_ALT_FORMES) {
             try {
                 patchFormeReversion();
@@ -2451,6 +2460,15 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
             if (pk == null) continue;
             if (pk.callRate <= 0) {
                 pk.callRate = 5;
+            }
+        }
+    }
+
+    private void zeroCallRates() {
+        for (Pokemon pk: pokes) {
+            if (pk == null) continue;
+            if (pk.callRate > 0) {
+                pk.callRate = 0;
             }
         }
     }
@@ -3446,7 +3464,7 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
     public void removeEvosForPokemonPool() {
         // slightly more complicated than gen2/3
         // we have to update a "baby table" too
-        List<Pokemon> pokemonIncluded = this.mainPokemonListInclFormes;
+        List<Pokemon> pokemonIncluded = this.getPokemonPool().mainPokemonListInclFormes;
         Set<Evolution> keepEvos = new HashSet<>();
         for (Pokemon pk : pokes) {
             if (pk != null) {
@@ -3817,5 +3835,23 @@ public class Gen7RomHandler extends Abstract3DSRomHandler {
             }
         }
         return items;
+    }
+
+    private void swapAlolan(){
+        for (Integer pokeID : Gen7Constants.speciesWithAlolanForms) {
+            Pokemon poke = pokes[pokeID];
+            Pokemon altPoke = poke;
+            for (int i = Gen7Constants.getPokemonCount(romEntry.romType); i < pokes.length; i++) {
+                Pokemon altForm = pokes[i];
+                if (altForm.baseForme != null && altForm.baseForme.number == poke.number) {
+                    altPoke = altForm;
+                    break;
+                }
+            }
+
+            pokemonList.set(poke.number, altPoke);
+            pokemonListInclFormes.set(altPoke.number, poke);
+            pokemonListInclFormes.set(poke.number, altPoke);
+        }
     }
 }

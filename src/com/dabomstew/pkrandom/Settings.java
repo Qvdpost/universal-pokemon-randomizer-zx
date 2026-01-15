@@ -49,10 +49,11 @@ public class Settings {
 
     public static final int VERSION = Version.VERSION;
 
-    public static final int LENGTH_OF_SETTINGS_DATA = 51;
+    public static final int LENGTH_OF_SETTINGS_DATA = 54;
 
     private CustomNamesSet customNames;
     private BannedPokemonSet bannedPokemon;
+    private BannedMoveSet bannedMoves;
 
     private String romName;
     private boolean updatedFromOldVersion = false;
@@ -64,6 +65,8 @@ public class Settings {
     private boolean removeTimeBasedEvolutions;
     private boolean raceMode;
     private boolean blockBrokenMoves;
+    private boolean noBannedMoves;
+    private boolean onlyRandomizeBannedMoves;
     private boolean limitPokemon;
     private boolean banIrregularAltFormes;
     private boolean dualTypeOnly;
@@ -163,7 +166,6 @@ public class Settings {
     }
 
     private TrainersMod trainersMod = TrainersMod.UNCHANGED;
-    private boolean rivalCarriesStarterThroughout;
     private boolean trainersUsePokemonOfSimilarStrength;
     private boolean trainersMatchTypingDistribution;
     private boolean trainersBlockLegendaries = true;
@@ -192,6 +194,18 @@ public class Settings {
     private boolean shinyChance;
     private boolean betterTrainerMovesets;
 
+    public enum RivalStarterMod {
+        UNCHANGED, CUSTOM, COMPLETELY_RANDOM, RANDOM_WITH_TWO_EVOLUTIONS, SAME
+    }
+
+    private RivalStarterMod rivalStarterMod = RivalStarterMod.UNCHANGED;
+    private boolean allowRivalStarterAltFormes;
+
+    // index in the rom's list of pokemon
+    // offset from the dropdown index from RandomizerGUI by 1
+    private int customRivalStarter;
+    private boolean noBanRandomizeRivalStarter;
+
     public enum WildPokemonMod {
         UNCHANGED, RANDOM, AREA_MAPPING, GLOBAL_MAPPING
     }
@@ -208,6 +222,7 @@ public class Settings {
     private boolean onlyRandomizeBannedStatic = false;
     private boolean onlyRandomizeBannedTrades = false;
     private boolean onlyRandomizeBannedTrainer = false;
+    private boolean noBanRandomizeTrainer = false;
     private boolean useMinimumCatchRate;
     private int minimumCatchRateLevel = 1;
     private boolean randomizeWildPokemonHeldItems;
@@ -394,9 +409,9 @@ public class Settings {
                 randomizeStartersHeldItems, banBadRandomStarterHeldItems, allowStarterAltFormes));
 
         // 5 - 10: dropdowns
-        write2ByteInt(out, customStarters[0] - 1);
-        write2ByteInt(out, customStarters[1] - 1);
-        write2ByteInt(out, customStarters[2] - 1);
+        write2ByteInt(out, customStarters[0]);
+        write2ByteInt(out, customStarters[1]);
+        write2ByteInt(out, customStarters[2]);
 
         // 11 movesets
         out.write(makeByteSelected(movesetsMod == MovesetsMod.COMPLETELY_RANDOM,
@@ -484,7 +499,6 @@ public class Settings {
         
         // 27 pokemon trainer misc
         out.write(makeByteSelected(trainersUsePokemonOfSimilarStrength, 
-                rivalCarriesStarterThroughout,
                 trainersMatchTypingDistribution,
                 trainersBlockLegendaries,
                 trainersBlockEarlyWonderGuard,
@@ -589,8 +603,19 @@ public class Settings {
 
         // 51 Banlist Only Randomization
         out.write(makeByteSelected(onlyRandomizeBannedWild, onlyRandomizeBannedStatic,
-                onlyRandomizeBannedTrades, onlyRandomizeBannedTrainer)
+                onlyRandomizeBannedTrades, onlyRandomizeBannedTrainer, noBanRandomizeTrainer,
+                noBannedMoves, onlyRandomizeBannedMoves)
         );
+
+        // 52 Rival Starter Pokemon
+        out.write(makeByteSelected(rivalStarterMod == RivalStarterMod.CUSTOM, rivalStarterMod == RivalStarterMod.COMPLETELY_RANDOM,
+                rivalStarterMod == RivalStarterMod.UNCHANGED, rivalStarterMod == RivalStarterMod.RANDOM_WITH_TWO_EVOLUTIONS,
+                rivalStarterMod == RivalStarterMod.SAME, noBanRandomizeRivalStarter, allowRivalStarterAltFormes));
+
+        // 53-54 Rival Pokemon Dropdown
+        write2ByteInt(out, customRivalStarter);
+
+
 
         try {
             byte[] romName = this.romName.getBytes("US-ASCII");
@@ -608,6 +633,7 @@ public class Settings {
             writeFullInt(out, (int) checksum.getValue());
             writeFullInt(out, FileFunctions.getFileChecksum(SysConstants.customNamesFile));
             writeFullInt(out, FileFunctions.getFileChecksum(SysConstants.bannedPokemonFile));
+            writeFullInt(out, FileFunctions.getFileChecksum(SysConstants.bannedMovesFile));
         } catch (IOException e) {
             e.printStackTrace(); // better than nothing
         }
@@ -668,8 +694,8 @@ public class Settings {
         settings.setBanBadRandomStarterHeldItems(restoreState(data[4], 5));
         settings.setAllowStarterAltFormes(restoreState(data[4],6));
 
-        settings.setCustomStarters(new int[] { FileFunctions.read2ByteInt(data, 5) + 1,
-                FileFunctions.read2ByteInt(data, 7) + 1, FileFunctions.read2ByteInt(data, 9) + 1 });
+        settings.setCustomStarters(new int[] { FileFunctions.read2ByteInt(data, 5),
+                FileFunctions.read2ByteInt(data, 7), FileFunctions.read2ByteInt(data, 9) });
 
         settings.setMovesetsMod(restoreEnum(MovesetsMod.class, data[11], 2, // UNCHANGED
                 1, // RANDOM_PREFER_SAME_TYPE
@@ -794,13 +820,12 @@ public class Settings {
 
         // new pokemon trainer misc
         settings.setTrainersUsePokemonOfSimilarStrength(restoreState(data[27], 0));
-        settings.setRivalCarriesStarterThroughout(restoreState(data[27], 1));
-        settings.setTrainersMatchTypingDistribution(restoreState(data[27], 2));
-        settings.setTrainersBlockLegendaries(restoreState(data[27], 3));
-        settings.setTrainersBlockEarlyWonderGuard(restoreState(data[27], 4));
-        settings.setSwapTrainerMegaEvos(restoreState(data[27], 5));
-        settings.setShinyChance(restoreState(data[27], 6));
-        settings.setBetterTrainerMovesets(restoreState(data[27], 7));
+        settings.setTrainersMatchTypingDistribution(restoreState(data[27], 1));
+        settings.setTrainersBlockLegendaries(restoreState(data[27], 2));
+        settings.setTrainersBlockEarlyWonderGuard(restoreState(data[27], 3));
+        settings.setSwapTrainerMegaEvos(restoreState(data[27], 4));
+        settings.setShinyChance(restoreState(data[27], 5));
+        settings.setBetterTrainerMovesets(restoreState(data[27], 6));
 
         // gen restrictions
         int genLimit = FileFunctions.readFullIntBigEndian(data, 28);
@@ -886,11 +911,33 @@ public class Settings {
         settings.setOnlyRandomizeBannedStatic(restoreState(data[51], 1));
         settings.setOnlyRandomizeBannedTrades(restoreState(data[51], 2));
         settings.setOnlyRandomizeBannedTrainer(restoreState(data[51], 3));
+        settings.setNoBanRandomizeTrainer(restoreState(data[51], 4));
+        settings.setNoBannedMoves(restoreState(data[51], 5));
+        settings.setOnlyRandomizeBannedMoves(restoreState(data[51], 6));
 
+        try {
+            settings.setRivalStarterMod(restoreEnum(RivalStarterMod.class, data[52],
+                    2, // UNCHANGED
+                    0, // CUSTOM
+                    1, // COMPLETELY_RANDOM
+                    3, // RANDOM_WITH_TWO_EVOLUTIONS
+                    4 // RIVAL CARRIES STARTER THROUGH GAME
+            ));
+        } catch (IllegalStateException e) {
+            settings.setRivalStarterMod(RivalStarterMod.UNCHANGED);
+        }
+        settings.setNoBanRandomizeRivalStarter(restoreState(data[52], 5));
+        settings.setAllowRivalStarterAltFormes(restoreState(data[52],6));
 
-        int romNameLength = data[LENGTH_OF_SETTINGS_DATA] & 0xFF;
-        String romName = new String(data, LENGTH_OF_SETTINGS_DATA + 1, romNameLength, "US-ASCII");
-        settings.setRomName(romName);
+        settings.setCustomRivalStarter(FileFunctions.read2ByteInt(data, 53));
+
+        try {
+            int romNameLength = data[LENGTH_OF_SETTINGS_DATA] & 0xFF;
+            String romName = new String(data, LENGTH_OF_SETTINGS_DATA + 1, romNameLength, "US-ASCII");
+            settings.setRomName(romName);
+        } catch (StringIndexOutOfBoundsException e) {
+            throw new StringIndexOutOfBoundsException("Unsupported length of settings data in input string. Old version?");
+        }
 
         return settings;
     }
@@ -898,6 +945,7 @@ public class Settings {
     public static class TweakForROMFeedback {
         private boolean changedStarter;
         private boolean removedCodeTweaks;
+        private boolean changedRivalStarter;
 
         public boolean isChangedStarter() {
             return changedStarter;
@@ -905,6 +953,15 @@ public class Settings {
 
         public TweakForROMFeedback setChangedStarter(boolean changedStarter) {
             this.changedStarter = changedStarter;
+            return this;
+        }
+
+        public boolean isChangedRivalStarter() {
+            return changedRivalStarter;
+        }
+
+        public TweakForROMFeedback setChangedRivalStarter(boolean changedRivalStarter) {
+            this.changedRivalStarter = changedRivalStarter;
             return this;
         }
 
@@ -946,6 +1003,15 @@ public class Settings {
                 } else {
                     this.customStarters[starter] = romPokemon.indexOf(romStarters.get(starter));
                 }
+            }
+        }
+
+        if (this.customRivalStarter < 0 || this.customRivalStarter >= romPokemon.size()) {
+            feedback.setChangedRivalStarter(true);
+            if (this.customRivalStarter >= romStarters.size()) {
+                this.customRivalStarter = 1;
+            } else {
+                this.customRivalStarter = romPokemon.indexOf(romStarters.get(0));
             }
         }
 
@@ -1045,6 +1111,13 @@ public class Settings {
 
     public Settings setBannedPokemon(BannedPokemonSet bannedPokemon) {
         this.bannedPokemon = bannedPokemon;
+        return this;
+    }
+
+    public BannedMoveSet getBannedMoves() { return bannedMoves;}
+
+    public Settings setBannedMoves(BannedMoveSet bannedMoves) {
+        this.bannedMoves = bannedMoves;
         return this;
     }
 
@@ -1542,6 +1615,22 @@ public class Settings {
         this.blockBrokenMovesetMoves = blockBrokenMovesetMoves;
     }
 
+    public boolean isNoBannedMoves() {
+        return noBannedMoves;
+    }
+
+    public void setNoBannedMoves(boolean noBannedMoves) {
+        this.noBannedMoves = noBannedMoves;
+    }
+
+    public boolean isOnlyRandomizeBannedMoves() {
+        return onlyRandomizeBannedMoves;
+    }
+
+    public void setOnlyRandomizeBannedMoves(boolean onlyRandomizeBannedMoves) {
+        this.onlyRandomizeBannedMoves = onlyRandomizeBannedMoves;
+    }
+
     public boolean isEvolutionMovesForAll() {
         return evolutionMovesForAll;
     }
@@ -1563,11 +1652,7 @@ public class Settings {
     }
 
     public boolean isRivalCarriesStarterThroughout() {
-        return rivalCarriesStarterThroughout;
-    }
-
-    public void setRivalCarriesStarterThroughout(boolean rivalCarriesStarterThroughout) {
-        this.rivalCarriesStarterThroughout = rivalCarriesStarterThroughout;
+        return rivalStarterMod != RivalStarterMod.UNCHANGED;
     }
 
     public boolean isTrainersUsePokemonOfSimilarStrength() {
@@ -1790,6 +1875,42 @@ public class Settings {
         this.betterTrainerMovesets = betterTrainerMovesets;
     }
 
+    public RivalStarterMod getRivalStarterMod() {
+        return rivalStarterMod;
+    }
+
+    public void setRivalStarterMod(boolean... bools) {
+        setRivalStarterMod(getEnum(RivalStarterMod.class, bools));
+    }
+
+    private void setRivalStarterMod(RivalStarterMod rivalStarterMod) {
+        this.rivalStarterMod = rivalStarterMod;
+    }
+
+    public int getCustomRivalStarter() {
+        return customRivalStarter;
+    }
+
+    public void setCustomRivalStarter(int customRivalStarter) {
+        this.customRivalStarter = customRivalStarter;
+    }
+
+    public boolean isNoBanRandomizeRivalStarter() {
+        return noBanRandomizeRivalStarter;
+    }
+
+    public void setNoBanRandomizeRivalStarter(boolean noBanRandomizeRivalStarter) {
+        this.noBanRandomizeRivalStarter = noBanRandomizeRivalStarter;
+    }
+
+    public boolean isAllowRivalStarterAltFormes() {
+        return allowRivalStarterAltFormes;
+    }
+
+    public void setAllowRivalStarterAltFormes(boolean allowRivalStarterAltFormes) {
+        this.allowRivalStarterAltFormes = allowRivalStarterAltFormes;
+    }
+
     public WildPokemonMod getWildPokemonMod() {
         return wildPokemonMod;
     }
@@ -1842,6 +1963,10 @@ public class Settings {
         return currentRestrictions != null && currentRestrictions.ban_pokemon && onlyRandomizeBannedTrainer;
     }
 
+    public boolean isNoBanRandomizeTrainer() {
+        return currentRestrictions != null && currentRestrictions.ban_pokemon && noBanRandomizeTrainer;
+    }
+
     public void setBlockWildLegendaries(boolean blockWildLegendaries) {
         this.blockWildLegendaries = blockWildLegendaries;
     }
@@ -1860,6 +1985,10 @@ public class Settings {
 
     public void setOnlyRandomizeBannedTrainer(boolean onlyRandomizeBanned) {
         this.onlyRandomizeBannedTrainer = onlyRandomizeBanned;
+    }
+
+    public void setNoBanRandomizeTrainer(boolean noBanRandomize) {
+        this.noBanRandomizeTrainer = noBanRandomize;
     }
 
     public boolean isUseMinimumCatchRate() {
@@ -2430,12 +2559,12 @@ public class Settings {
 
     private static void checkChecksum(byte[] data) {
         // Check the checksum
-        ByteBuffer buf = ByteBuffer.allocate(4).put(data, data.length - 12, 4);
+        ByteBuffer buf = ByteBuffer.allocate(4).put(data, data.length - 16, 4);
         buf.rewind();
         int crc = buf.getInt();
 
         CRC32 checksum = new CRC32();
-        checksum.update(data, 0, data.length - 12);
+        checksum.update(data, 0, data.length - 16);
 
         if ((int) checksum.getValue() != crc) {
             throw new IllegalArgumentException("Malformed input string");

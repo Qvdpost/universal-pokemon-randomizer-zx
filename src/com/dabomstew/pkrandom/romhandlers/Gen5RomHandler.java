@@ -3450,7 +3450,7 @@ public class Gen5RomHandler extends AbstractDSRomHandler {
     @Override
     public void randomizeIntroPokemon() {
         try {
-            int introPokemon = randomPokemon().number;
+            int introPokemon = this.getAllPokemonPool().randomPokemon(random, true).number;
             byte[] introGraphicOverlay = readOverlay(romEntry.getInt("IntroGraphicOvlNumber"));
             int offset = find(introGraphicOverlay, Gen5Constants.introGraphicPrefix);
             if (offset > 0) {
@@ -3930,7 +3930,7 @@ public class Gen5RomHandler extends AbstractDSRomHandler {
     public void removeEvosForPokemonPool() {
         // slightly more complicated than gen2/3
         // we have to update a "baby table" too
-        List<Pokemon> pokemonIncluded = this.mainPokemonList;
+        List<Pokemon> pokemonIncluded = this.getPokemonPool().mainPokemonList;
         Set<Evolution> keepEvos = new HashSet<>();
         for (Pokemon pk : pokes) {
             if (pk != null) {
@@ -4205,7 +4205,7 @@ public class Gen5RomHandler extends AbstractDSRomHandler {
     @Override
     public BufferedImage getMascotImage() {
         try {
-            Pokemon pk = randomPokemonInclFormes();
+            Pokemon pk = this.getAllPokemonPool().randomPokemon(random, true);
             NARCArchive pokespritesNARC = this.readNARC(romEntry.getFile("PokemonGraphics"));
 
             // First prepare the palette, it's the easy bit

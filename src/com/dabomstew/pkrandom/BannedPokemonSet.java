@@ -37,8 +37,11 @@ import java.util.*;
 public class BannedPokemonSet {
 
     private Set<Integer> bannedPokemon;
+    private BannedPokemonSet next;
+    private BannedPokemonSet previous;
 
     private static final int BANNED_POKEMON_VERSION = 1;
+
 
     // Standard constructor: read binary data from an input stream.
     public BannedPokemonSet(InputStream data) throws IOException {
@@ -50,10 +53,31 @@ public class BannedPokemonSet {
         bannedPokemon = readIDsBlock(data);
     }
 
+    public BannedPokemonSet(BannedPokemonSet bannedSet) {
+        bannedPokemon = new HashSet<>();
+        this.setBannedPokemon(bannedSet.getBannedPokemon());
+        this.setPrevious(bannedSet);
+        bannedSet.setNext(this);
+    }
+
     // Alternate constructor: blank all lists
-    // Used for importing old names and on the editor dialog.
     public BannedPokemonSet() {
         bannedPokemon = new HashSet<>();
+    }
+
+
+
+    public BannedPokemonSet getNext() {
+        return this.next;
+    }
+    public void setNext(BannedPokemonSet bannedSet) {
+        this.next = bannedSet;
+    }
+    public BannedPokemonSet getPrevious() {
+        return this.previous;
+    }
+    public void setPrevious(BannedPokemonSet bannedSet) {
+        this.previous = bannedSet;
     }
 
     private Set<Integer> readIDsBlock(InputStream in) throws IOException {
@@ -119,14 +143,20 @@ public class BannedPokemonSet {
     public void addBannedPokemon(Integer pokemon) {
         bannedPokemon.add(pokemon);
     }
+    public void addBannedPokemon(Pokemon pokemon) {
+        bannedPokemon.add(pokemon.number);
+    }
 
     public void addBannedPokemon(List<Integer> pokemon) {
         bannedPokemon.addAll(pokemon);
     }
 
-    public void removeBannedPokemon(Integer pokemon) { bannedPokemon.remove(pokemon); }
+    public void removeBannedPokemon(Integer pokemon) {
+        bannedPokemon.remove(pokemon);
+    }
+    public void removeBannedPokemon(List<Integer> pokemon) { pokemon.forEach(bannedPokemon::remove); }
 
-    public void setBannedPokemon(List<Integer> pokemon) {
+    public void setBannedPokemon(Collection<Integer> pokemon) {
         bannedPokemon.clear();
         bannedPokemon.addAll(pokemon);
     }

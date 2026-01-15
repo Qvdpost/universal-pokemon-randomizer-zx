@@ -33,6 +33,7 @@ import java.util.Random;
 import java.util.Set;
 
 import com.dabomstew.pkrandom.MiscTweak;
+import com.dabomstew.pkrandom.PokemonPool;
 import com.dabomstew.pkrandom.Settings;
 import com.dabomstew.pkrandom.pokemon.*;
 
@@ -106,7 +107,9 @@ public interface RomHandler {
 
     void setPokemonPool(Settings settings);
 
-    List<Pokemon> getPokemonPool();
+    PokemonPool getPokemonPool();
+
+    PokemonPool getAllPokemonPool();
 
     void removeEvosForPokemonPool();
 
@@ -138,6 +141,13 @@ public interface RomHandler {
 
     void randomizeStarterHeldItems(Settings settings);
 
+    void customRivalStarter(Settings settings);
+    void randomizeRivalStarter(Settings settings);
+    void randomizeBasicTwoEvosRivalStarter(Settings settings);
+    Pokemon getPickedRivalStarter();
+
+
+
     // =======================
     // Pokemon Base Statistics
     // =======================
@@ -155,27 +165,6 @@ public interface RomHandler {
     Map<Integer,StatChange> getUpdatedPokemonStats(int generation);
 
     void standardizeEXPCurves(Settings settings);
-
-    // ====================================
-    // Methods for selecting random Pokemon
-    // ====================================
-
-    // Give a random Pokemon who's in this game
-    Pokemon randomPokemon();
-
-    Pokemon randomPokemonInclFormes();
-
-    // Give a random non-legendary Pokemon who's in this game
-    // Business rules for who's legendary are in Pokemon class
-    Pokemon randomNonLegendaryPokemon();
-
-    // Give a random legendary Pokemon who's in this game
-    // Business rules for who's legendary are in Pokemon class
-    Pokemon randomLegendaryPokemon();
-
-    // Give a random Pokemon who has 2 evolution stages
-    // Should make a good starter Pokemon
-    Pokemon random2EvosPokemon(boolean allowAltFormes);
 
     // =============
     // Pokemon Types

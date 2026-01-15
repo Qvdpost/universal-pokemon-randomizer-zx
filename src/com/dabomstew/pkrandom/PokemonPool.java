@@ -1,0 +1,411 @@
+package com.dabomstew.pkrandom;
+
+import com.dabomstew.pkrandom.constants.*;
+import com.dabomstew.pkrandom.pokemon.*;
+import com.dabomstew.pkrandom.romhandlers.AbstractRomHandler;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class PokemonPool {
+    private AbstractRomHandler handler;
+    public List<Pokemon> mainPokemonList;
+    public List<Pokemon> mainPokemonListInclFormes;
+    public List<Pokemon> altFormesList;
+    public List<MegaEvolution> megaEvolutionsList;
+    public List<Pokemon> noLegendaryList, onlyLegendaryList, ultraBeastList;
+    public List<Pokemon> noLegendaryListInclFormes, onlyLegendaryListInclFormes;
+    public List<Pokemon> noLegendaryAltsList, onlyLegendaryAltsList;
+    private List<Pokemon> twoEvoPokes;
+    private List<Pokemon> twoEvoPokesInclFormes;
+
+
+
+    public PokemonPool(AbstractRomHandler handler) {
+        this.handler = handler;
+        this.mainPokemonList = new ArrayList<Pokemon>();
+    }
+
+
+    public void setPokemonPool(Settings settings) {
+
+
+        GenRestrictions restrictions = null;
+        if (settings != null) {
+            restrictions = settings.getCurrentRestrictions();
+
+            // restrictions should already be null if "Limit Pokemon" is disabled, but this
+            // is a safeguard
+            if (!settings.isLimitPokemon()) {
+                restrictions = null;
+            }
+        }
+
+        this.mainPokemonList = this.allPokemonWithoutNull();
+        this.mainPokemonListInclFormes = this.allPokemonInclFormesWithoutNull();
+        this.altFormesList = this.handler.getAltFormes();
+        this.megaEvolutionsList = this.handler.getMegaEvolutions();
+        if (restrictions != null) {
+            this.mainPokemonList = new ArrayList<>();
+            this.mainPokemonListInclFormes = new ArrayList<>();
+            this.megaEvolutionsList = new ArrayList<>();
+            List<Pokemon> allPokemon = this.handler.getPokemon();
+
+            if (restrictions.allow_gen1) {
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.bulbasaur, Species.mew);
+            }
+
+            if (restrictions.allow_gen2 && allPokemon.size() > Gen2Constants.pokemonCount) {
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.chikorita, Species.celebi);
+            }
+
+            if (restrictions.allow_gen3 && allPokemon.size() > Gen3Constants.pokemonCount) {
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.treecko, Species.deoxys);
+            }
+
+            if (restrictions.allow_gen4 && allPokemon.size() > Gen4Constants.pokemonCount) {
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.turtwig, Species.arceus);
+            }
+
+            if (restrictions.allow_gen5 && allPokemon.size() > Gen5Constants.pokemonCount) {
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.victini, Species.genesect);
+            }
+
+            if (restrictions.allow_gen6 && allPokemon.size() > Gen6Constants.pokemonCount) {
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.chespin, Species.volcanion);
+            }
+
+            int maxGen7SpeciesID = this.handler.isSM ? Species.marshadow : Species.zeraora;
+            if (restrictions.allow_gen7 && allPokemon.size() > maxGen7SpeciesID) {
+                addPokesFromRange(this.mainPokemonList, allPokemon, Species.rowlet, maxGen7SpeciesID);
+            }
+
+            // If the user specified it, add all the evolutionary relatives for everything
+            // in the mainPokemonList
+            if (restrictions.allow_evolutionary_relatives) {
+                addEvolutionaryRelatives(this.mainPokemonList);
+            }
+
+            // Now that mainPokemonList has all the selected Pokemon, update
+            // mainPokemonListInclFormes too
+            addAllPokesInclFormes(this.mainPokemonList, this.mainPokemonListInclFormes);
+
+            if (restrictions.ban_pokemon) {
+                removeBannedPokemon(this.mainPokemonList, allPokemon, settings.getBannedPokemon());
+            }
+
+            if (restrictions.ban_pokemon) {
+                removeBannedPokemon(this.mainPokemonListInclFormes, this.handler.getPokemonInclFormes(), settings.getBannedPokemon());
+            }
+
+            // Populate megaEvolutionsList with all of the mega evolutions that exist in the
+            // pool
+            List<MegaEvolution> allMegaEvolutions = this.handler.getMegaEvolutions();
+            for (MegaEvolution megaEvo : allMegaEvolutions) {
+                if (this.mainPokemonListInclFormes.contains(megaEvo.to)) {
+                    this.megaEvolutionsList.add(megaEvo);
+                }
+            }
+        }
+
+        this.noLegendaryList = new ArrayList<>();
+        this.noLegendaryListInclFormes = new ArrayList<>();
+        this.onlyLegendaryList = new ArrayList<>();
+        this.onlyLegendaryListInclFormes = new ArrayList<>();
+        this.noLegendaryAltsList = new ArrayList<>();
+        this.onlyLegendaryAltsList = new ArrayList<>();
+        this.ultraBeastList = new ArrayList<>();
+
+        for (Pokemon p : this.mainPokemonList) {
+            if (p.isLegendary()) {
+                this.onlyLegendaryList.add(p);
+            } else if (p.isUltraBeast()) {
+                this.ultraBeastList.add(p);
+            } else {
+                this.noLegendaryList.add(p);
+            }
+        }
+        for (Pokemon p : this.mainPokemonListInclFormes) {
+            if (p.isLegendary()) {
+                this.onlyLegendaryListInclFormes.add(p);
+            } else if (!this.ultraBeastList.contains(p)) {
+                this.noLegendaryListInclFormes.add(p);
+            }
+        }
+        for (Pokemon f : this.altFormesList) {
+            if (f.isLegendary()) {
+                this.onlyLegendaryAltsList.add(f);
+            } else {
+                this.noLegendaryAltsList.add(f);
+            }
+        }
+
+        // Prepare the list
+        this.twoEvoPokes = new ArrayList<Pokemon>();
+        List<Pokemon> allPokes = this.mainPokemonList;
+        for (Pokemon pk : allPokes) {
+            if (pk != null && pk.evolutionsTo.size() == 0 && pk.evolutionsFrom.size() > 0) {
+                // Potential candidate
+                for (Evolution ev : pk.evolutionsFrom) {
+                    // If any of the targets here evolve, the original
+                    // Pokemon has 2+ stages.
+                    if (ev.to.evolutionsFrom.size() > 0) {
+                        this.twoEvoPokes.add(pk);
+                        break;
+                    }
+                }
+            }
+        }
+
+        this.twoEvoPokesInclFormes = new ArrayList<Pokemon>();
+        List<Pokemon> allPokesInclFormes = this.mainPokemonListInclFormes
+                .stream()
+                .filter(pk -> pk == null || !pk.actuallyCosmetic)
+                .collect(Collectors.toList());
+        for (Pokemon pk : allPokesInclFormes) {
+            if (pk != null && pk.evolutionsTo.size() == 0 && pk.evolutionsFrom.size() > 0) {
+                // Potential candidate
+                for (Evolution ev : pk.evolutionsFrom) {
+                    // If any of the targets here evolve, the original
+                    // Pokemon has 2+ stages.
+                    if (ev.to.evolutionsFrom.size() > 0) {
+                        this.twoEvoPokesInclFormes.add(pk);
+                        break;
+                    }
+                }
+            }
+        }
+
+    }
+
+    private void addPokesFromRange(List<Pokemon> pokemonPool, List<Pokemon> allPokemon, int range_min, int range_max) {
+        for (int i = range_min; i <= range_max; i++) {
+            if (!pokemonPool.contains(allPokemon.get(i))) {
+                pokemonPool.add(allPokemon.get(i));
+            }
+        }
+    }
+
+    private void removeBannedPokemon(List<Pokemon> pokemonPool, List<Pokemon> allPokemon, BannedPokemonSet bannedPokemon) {
+        for (int i : bannedPokemon.getBannedPokemon()) {
+            Pokemon poke = this.getPokemon(i);
+            if (poke != null) {
+                pokemonPool.remove(poke);
+            }
+        }
+    }
+
+    private void addEvolutionaryRelatives(List<Pokemon> pokemonPool) {
+        Set<Pokemon> newPokemon = new TreeSet<>();
+        for (Pokemon pk : pokemonPool) {
+            List<Pokemon> evolutionaryRelatives = getEvolutionaryRelatives(pk);
+            for (Pokemon relative : evolutionaryRelatives) {
+                if (!pokemonPool.contains(relative) && !newPokemon.contains(relative)) {
+                    newPokemon.add(relative);
+                }
+            }
+        }
+
+        pokemonPool.addAll(newPokemon);
+    }
+
+    private void addAllPokesInclFormes(List<Pokemon> pokemonPool, List<Pokemon> pokemonPoolInclFormes) {
+        List<Pokemon> altFormes = this.handler.getAltFormes();
+        Set<Integer> pokemonNumbers = new HashSet<>();
+
+        for (Pokemon currentPokemon : pokemonPool) {
+            if (!pokemonPoolInclFormes.contains(currentPokemon)) {
+                pokemonPoolInclFormes.add(currentPokemon);
+                pokemonNumbers.add(currentPokemon.number);
+            }
+        }
+
+        for (Pokemon potentialAltForme : altFormes) {
+            if (potentialAltForme.baseForme != null
+                    && pokemonNumbers.contains(potentialAltForme.baseForme.number)) {
+                pokemonPoolInclFormes.add(potentialAltForme);
+            } else if (potentialAltForme.formeNumber == 0) {
+                pokemonPoolInclFormes.add(potentialAltForme);
+            }
+        }
+
+
+    }
+
+    public Pokemon getPokemon(Integer pokeId) {
+        Pokemon poke = null;
+        if (pokeId < this.mainPokemonList.size()) {
+            poke = this.mainPokemonListInclFormes.get(pokeId);
+        }
+        if (poke == null || poke.number != pokeId) {
+            Optional<Pokemon> optPoke = this.mainPokemonListInclFormes.stream()
+                    .filter(pokemon -> pokemon.number == pokeId)
+                    .findFirst();
+            if (optPoke.isPresent()) {
+                poke = optPoke.get();
+            }
+        }
+        return poke;
+    }
+
+    private List<Pokemon> allPokemonWithoutNull() {
+        List<Pokemon> allPokes = new ArrayList<>(this.handler.getPokemon());
+        allPokes.remove(0);
+        return allPokes;
+    }
+
+    private List<Pokemon> allPokemonInclFormesWithoutNull() {
+        List<Pokemon> allPokes = new ArrayList<>(this.handler.getPokemonInclFormes());
+        allPokes.remove(0);
+        return allPokes;
+    }
+
+    private List<Pokemon> getEvolutionaryRelatives(Pokemon pk) {
+        List<Pokemon> evolutionaryRelatives = new ArrayList<>();
+        for (Evolution ev : pk.evolutionsFrom) {
+            if (!evolutionaryRelatives.contains(ev.to)) {
+                Pokemon evo = ev.to;
+                evolutionaryRelatives.add(evo);
+                Queue<Evolution> evolutionsList = new LinkedList<>();
+                evolutionsList.addAll(evo.evolutionsFrom);
+                while (evolutionsList.size() > 0) {
+                    evo = evolutionsList.remove().to;
+                    if (!evolutionaryRelatives.contains(evo)) {
+                        evolutionaryRelatives.add(evo);
+                        evolutionsList.addAll(evo.evolutionsFrom);
+                    }
+                }
+            }
+        }
+
+        for (Evolution ev : pk.evolutionsTo) {
+            if (!evolutionaryRelatives.contains(ev.from)) {
+                Pokemon preEvo = ev.from;
+                evolutionaryRelatives.add(preEvo);
+
+                // At this point, preEvo is basically the "parent" of pk. Run
+                // getEvolutionaryRelatives on preEvo in order to get pk's
+                // "sibling" evolutions too. For example, if pk is Espeon, then
+                // preEvo here will be Eevee, and this will add all the other
+                // eeveelutions to the relatives list.
+                List<Pokemon> relativesForPreEvo = getEvolutionaryRelatives(preEvo);
+                for (Pokemon preEvoRelative : relativesForPreEvo) {
+                    if (!evolutionaryRelatives.contains(preEvoRelative)) {
+                        evolutionaryRelatives.add(preEvoRelative);
+                    }
+                }
+
+                while (preEvo.evolutionsTo.size() > 0) {
+                    preEvo = preEvo.evolutionsTo.get(0).from;
+                    if (!evolutionaryRelatives.contains(preEvo)) {
+                        evolutionaryRelatives.add(preEvo);
+
+                        // Similar to above, get the "sibling" evolutions here too.
+                        relativesForPreEvo = getEvolutionaryRelatives(preEvo);
+                        for (Pokemon preEvoRelative : relativesForPreEvo) {
+                            if (!evolutionaryRelatives.contains(preEvoRelative)) {
+                                evolutionaryRelatives.add(preEvoRelative);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return evolutionaryRelatives;
+    }
+
+    private static class EvolutionPair {
+        private Pokemon from;
+        private Pokemon to;
+
+        EvolutionPair(Pokemon from, Pokemon to) {
+            this.from = from;
+            this.to = to;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + ((from == null) ? 0 : from.hashCode());
+            result = prime * result + ((to == null) ? 0 : to.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            EvolutionPair other = (EvolutionPair) obj;
+            if (from == null) {
+                if (other.from != null)
+                    return false;
+            } else if (!from.equals(other.from))
+                return false;
+            if (to == null) {
+                return other.to == null;
+            } else
+                return to.equals(other.to);
+        }
+    }
+
+    /**
+     * Check whether adding an evolution from one Pokemon to another will cause
+     * an evolution cycle.
+     *
+     * @param from Pokemon that is evolving
+     * @param to   Pokemon to evolve to
+     * @return True if there is an evolution cycle, else false
+     */
+    private boolean evoCycleCheck(Pokemon from, Pokemon to) {
+        Evolution tempEvo = new Evolution(from, to, false, EvolutionType.NONE, 0);
+        from.evolutionsFrom.add(tempEvo);
+        Set<Pokemon> visited = new HashSet<>();
+        Set<Pokemon> recStack = new HashSet<>();
+        boolean recur = isCyclic(from, visited, recStack);
+        from.evolutionsFrom.remove(tempEvo);
+        return recur;
+    }
+
+    private boolean isCyclic(Pokemon pk, Set<Pokemon> visited, Set<Pokemon> recStack) {
+        if (!visited.contains(pk)) {
+            visited.add(pk);
+            recStack.add(pk);
+            for (Evolution ev : pk.evolutionsFrom) {
+                if (!visited.contains(ev.to) && isCyclic(ev.to, visited, recStack)) {
+                    return true;
+                } else if (recStack.contains(ev.to)) {
+                    return true;
+                }
+            }
+        }
+        recStack.remove(pk);
+        return false;
+    }
+
+    public Pokemon random2EvosPokemon(Random random, boolean allowAltFormes) {
+        List<Pokemon> basicPokes = allowAltFormes ? this.twoEvoPokesInclFormes : this.twoEvoPokes;
+        if (basicPokes.isEmpty()) {
+            return randomPokemon(random, allowAltFormes);
+        }
+
+        return basicPokes.get(random.nextInt(basicPokes.size()));
+    }
+
+    public Pokemon randomPokemon(Random random, Boolean allowAltFormes) {
+        return allowAltFormes ? this.mainPokemonListInclFormes.get(random.nextInt(this.mainPokemonListInclFormes.size())) : this.mainPokemonList.get(random.nextInt(this.mainPokemonList.size()));
+    }
+
+    public Pokemon randomNonLegendaryPokemon(Random random, Boolean allowAltFormes) {
+        return allowAltFormes ? this.noLegendaryListInclFormes.get(random.nextInt(this.noLegendaryListInclFormes.size())) : this.noLegendaryList.get(random.nextInt(this.noLegendaryList.size()));
+    }
+
+    public Pokemon randomLegendaryPokemon(Random random, Boolean allowAltFormes) {
+        return allowAltFormes ? this.onlyLegendaryListInclFormes.get(random.nextInt(this.onlyLegendaryListInclFormes.size())) : this.onlyLegendaryList.get(random.nextInt(this.onlyLegendaryList.size()));
+    }
+}
