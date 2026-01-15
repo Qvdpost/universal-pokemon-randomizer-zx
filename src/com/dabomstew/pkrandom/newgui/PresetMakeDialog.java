@@ -194,6 +194,8 @@ public class PresetMakeDialog extends javax.swing.JDialog {
                 dos.write(customnames);
                 byte[] bannedPokemon = readFile(FileFunctions.openConfig(SysConstants.bannedPokemonFile));
                 dos.write(bannedPokemon);
+                byte[] bannedMoves = readFile(FileFunctions.openConfig(SysConstants.bannedMovesFile));
+                dos.write(bannedMoves);
                 dos.close();
                 JOptionPane.showMessageDialog(this, "Preset file saved to\n" + fh.getAbsolutePath());
             } catch (IOException ex) {

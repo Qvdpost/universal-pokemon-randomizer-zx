@@ -35,7 +35,7 @@ public class InvalidSupplementFilesException extends Exception {
     private static final long serialVersionUID = -3778498838677886358L;
 
     public enum Type {
-        UNKNOWN, TOO_SHORT, CUSTOM_NAMES, BANNED_POKEMON
+        UNKNOWN, TOO_SHORT, CUSTOM_NAMES, BANNED_POKEMON, BANNED_MOVES
     }
 
     private final Type type;

@@ -53,6 +53,7 @@ public class Settings {
 
     private CustomNamesSet customNames;
     private BannedPokemonSet bannedPokemon;
+    private BannedMoveSet bannedMoves;
 
     private String romName;
     private boolean updatedFromOldVersion = false;
@@ -64,6 +65,8 @@ public class Settings {
     private boolean removeTimeBasedEvolutions;
     private boolean raceMode;
     private boolean blockBrokenMoves;
+    private boolean noBannedMoves;
+    private boolean onlyRandomizeBannedMoves;
     private boolean limitPokemon;
     private boolean banIrregularAltFormes;
     private boolean dualTypeOnly;
@@ -600,7 +603,8 @@ public class Settings {
 
         // 51 Banlist Only Randomization
         out.write(makeByteSelected(onlyRandomizeBannedWild, onlyRandomizeBannedStatic,
-                onlyRandomizeBannedTrades, onlyRandomizeBannedTrainer, noBanRandomizeTrainer)
+                onlyRandomizeBannedTrades, onlyRandomizeBannedTrainer, noBanRandomizeTrainer,
+                noBannedMoves, onlyRandomizeBannedMoves)
         );
 
         // 52 Rival Starter Pokemon
@@ -629,6 +633,7 @@ public class Settings {
             writeFullInt(out, (int) checksum.getValue());
             writeFullInt(out, FileFunctions.getFileChecksum(SysConstants.customNamesFile));
             writeFullInt(out, FileFunctions.getFileChecksum(SysConstants.bannedPokemonFile));
+            writeFullInt(out, FileFunctions.getFileChecksum(SysConstants.bannedMovesFile));
         } catch (IOException e) {
             e.printStackTrace(); // better than nothing
         }
@@ -907,6 +912,8 @@ public class Settings {
         settings.setOnlyRandomizeBannedTrades(restoreState(data[51], 2));
         settings.setOnlyRandomizeBannedTrainer(restoreState(data[51], 3));
         settings.setNoBanRandomizeTrainer(restoreState(data[51], 4));
+        settings.setNoBannedMoves(restoreState(data[51], 5));
+        settings.setOnlyRandomizeBannedMoves(restoreState(data[51], 6));
 
         try {
             settings.setRivalStarterMod(restoreEnum(RivalStarterMod.class, data[52],
@@ -1104,6 +1111,13 @@ public class Settings {
 
     public Settings setBannedPokemon(BannedPokemonSet bannedPokemon) {
         this.bannedPokemon = bannedPokemon;
+        return this;
+    }
+
+    public BannedMoveSet getBannedMoves() { return bannedMoves;}
+
+    public Settings setBannedMoves(BannedMoveSet bannedMoves) {
+        this.bannedMoves = bannedMoves;
         return this;
     }
 
@@ -1599,6 +1613,22 @@ public class Settings {
 
     public void setBlockBrokenMovesetMoves(boolean blockBrokenMovesetMoves) {
         this.blockBrokenMovesetMoves = blockBrokenMovesetMoves;
+    }
+
+    public boolean isNoBannedMoves() {
+        return noBannedMoves;
+    }
+
+    public void setNoBannedMoves(boolean noBannedMoves) {
+        this.noBannedMoves = noBannedMoves;
+    }
+
+    public boolean isOnlyRandomizeBannedMoves() {
+        return onlyRandomizeBannedMoves;
+    }
+
+    public void setOnlyRandomizeBannedMoves(boolean onlyRandomizeBannedMoves) {
+        this.onlyRandomizeBannedMoves = onlyRandomizeBannedMoves;
     }
 
     public boolean isEvolutionMovesForAll() {
@@ -2529,12 +2559,12 @@ public class Settings {
 
     private static void checkChecksum(byte[] data) {
         // Check the checksum
-        ByteBuffer buf = ByteBuffer.allocate(4).put(data, data.length - 12, 4);
+        ByteBuffer buf = ByteBuffer.allocate(4).put(data, data.length - 16, 4);
         buf.rewind();
         int crc = buf.getInt();
 
         CRC32 checksum = new CRC32();
-        checksum.update(data, 0, data.length - 12);
+        checksum.update(data, 0, data.length - 16);
 
         if ((int) checksum.getValue() != crc) {
             throw new IllegalArgumentException("Malformed input string");
