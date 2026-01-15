@@ -98,12 +98,12 @@ public class Utils {
         }
 
         // Check the checksum
-        ByteBuffer buf = ByteBuffer.allocate(4).put(data, data.length - 12, 4);
+        ByteBuffer buf = ByteBuffer.allocate(4).put(data, data.length - 16, 4);
         buf.rewind();
         int crc = buf.getInt();
 
         CRC32 checksum = new CRC32();
-        checksum.update(data, 0, data.length - 12);
+        checksum.update(data, 0, data.length - 16);
         if ((int) checksum.getValue() != crc) {
             throw new IllegalArgumentException("Checksum failure.");
         }

@@ -705,6 +705,9 @@ public class Randomizer {
 
         // Banned Pokemon
         LogBannedPokemon(log);
+        
+        // Banned Moves
+        LogBannedMoves(log);
 
         // Log tail
         String gameName = romHandler.getROMName();
@@ -1400,6 +1403,31 @@ public class Randomizer {
                 log.println();
             }
         }
+    }
+    
+    private void LogBannedMoves(final PrintStream log) {
+        if (!settings.isNoBannedMoves()) {
+            return;
+        }
+
+        BannedMoveSet bannedMoveSet = settings.getBannedMoves();
+        Map<String, String> moves = bannedMoveSet.getBannedMoves();
+        if (moves.isEmpty()) {
+            return;
+        }
+
+        log.println("--Banned Moves--");
+        if (settings.isOnlyRandomizeBannedMoves()) {
+            log.println("Only banned moves are randomized.");
+        }
+        List<String> sortedNames = new ArrayList<>(moves.keySet());
+        Collections.sort(sortedNames);
+        for (String name : sortedNames) {
+            String replacement = moves.get(name);
+            log.printf("%s -> %s", name, replacement);
+            log.println();
+        }
+        log.println();
     }
 
     private List<String> getTrainerNames() {

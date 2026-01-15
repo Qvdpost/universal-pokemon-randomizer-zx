@@ -60,7 +60,9 @@ public class FileFunctions {
     }
 
     private static List<String> overrideFiles = Arrays.asList(SysConstants.customNamesFile,
-            SysConstants.tclassesFile, SysConstants.tnamesFile, SysConstants.nnamesFile, SysConstants.bannedPokemonFile);
+            SysConstants.tclassesFile, SysConstants.tnamesFile, SysConstants.nnamesFile, SysConstants.bannedPokemonFile,
+            SysConstants.bannedMovesFile
+    );
 
     public static boolean configExists(String filename) {
         if (overrideFiles.contains(filename)) {

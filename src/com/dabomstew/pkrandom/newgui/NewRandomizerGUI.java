@@ -126,6 +126,8 @@ public class NewRandomizerGUI {
     private JCheckBox pmsGuaranteedLevel1MovesCheckBox;
     private JCheckBox pmsReorderDamagingMovesCheckBox;
     private JCheckBox pmsNoGameBreakingMovesCheckBox;
+    private JCheckBox pmsNoBannedMovesCheckBox;
+    private JCheckBox pmsOnlyRandomizeBannedMovesCheckBox;
     private JCheckBox pmsForceGoodDamagingCheckBox;
     private JSlider pmsGuaranteedLevel1MovesSlider;
     private JSlider pmsForceGoodDamagingSlider;
@@ -351,7 +353,7 @@ public class NewRandomizerGUI {
     private JMenuItem batchRandomizationMenuItem;
 
     private ImageIcon emptyIcon = new ImageIcon(getClass().getResource("/com/dabomstew/pkrandom/newgui/emptyIcon.png"));
-    private boolean haveCheckedCustomNames, haveCheckedBannedPokemon, unloadGameOnSuccess;
+    private boolean haveCheckedCustomNames, haveCheckedBannedPokemon, haveCheckedBannedMoves, unloadGameOnSuccess;
     private Map<String, String> gameUpdates = new TreeMap<>();
 
     private List<String> trainerSettings = new ArrayList<>();
@@ -372,6 +374,7 @@ public class NewRandomizerGUI {
 
         haveCheckedCustomNames = false;
         haveCheckedBannedPokemon = false;
+        haveCheckedBannedMoves = false;
         attemptReadConfig();
         initExplicit();
         initTweaksPanel();
@@ -388,6 +391,10 @@ public class NewRandomizerGUI {
 
         if (!haveCheckedBannedPokemon) {
             checkBannedPokemon();
+        }
+
+        if (!haveCheckedBannedMoves) {
+            checkBannedMoves();
         }
 
         new Thread(() -> {
@@ -460,6 +467,9 @@ public class NewRandomizerGUI {
         pmsRandomCompletelyRadioButton.addActionListener(e -> enableOrDisableSubControls());
         pmsMetronomeOnlyModeRadioButton.addActionListener(e -> enableOrDisableSubControls());
         pmsGuaranteedLevel1MovesCheckBox.addActionListener(e -> enableOrDisableSubControls());
+        pmsNoGameBreakingMovesCheckBox.addActionListener(e -> enableOrDisableSubControls());
+        pmsNoBannedMovesCheckBox.addActionListener(e -> enableOrDisableSubControls());
+        pmsOnlyRandomizeBannedMovesCheckBox.addActionListener(e -> enableOrDisableSubControls());
         pmsForceGoodDamagingCheckBox.addActionListener(e -> enableOrDisableSubControls());
         tpForceFullyEvolvedAtCheckBox.addActionListener(e -> enableOrDisableSubControls());
         tpPercentageLevelModifierCheckBox.addActionListener(e -> enableOrDisableSubControls());
@@ -1597,6 +1607,8 @@ public class NewRandomizerGUI {
         pmsForceGoodDamagingCheckBox.setSelected(settings.isMovesetsForceGoodDamaging());
         pmsForceGoodDamagingSlider.setValue(settings.getMovesetsGoodDamagingPercent());
         pmsNoGameBreakingMovesCheckBox.setSelected(settings.isBlockBrokenMovesetMoves());
+        pmsNoBannedMovesCheckBox.setSelected(settings.isNoBannedMoves());
+        pmsOnlyRandomizeBannedMovesCheckBox.setSelected(settings.isOnlyRandomizeBannedMoves());
         pmsEvolutionMovesCheckBox.setSelected(settings.isEvolutionMovesForAll());
 
         tpSimilarStrengthCheckBox.setSelected(settings.isTrainersUsePokemonOfSimilarStrength());
@@ -1816,7 +1828,6 @@ public class NewRandomizerGUI {
         settings.setTypesMod(ptUnchangedRadioButton.isSelected(), ptRandomFollowEvolutionsRadioButton.isSelected(),
                 ptRandomCompletelyRadioButton.isSelected());
         settings.setTypesFollowMegaEvolutions(ptFollowMegaEvosCheckBox.isSelected() && ptFollowMegaEvosCheckBox.isVisible());
-        settings.setBlockBrokenMovesetMoves(pmsNoGameBreakingMovesCheckBox.isSelected());
         settings.setDualTypeOnly(ptIsDualTypeCheckBox.isSelected());
 
         settings.setMakeEvolutionsEasier(peMakeEvolutionsEasierCheckBox.isSelected());
@@ -1854,6 +1865,8 @@ public class NewRandomizerGUI {
         settings.setMovesetsForceGoodDamaging(pmsForceGoodDamagingCheckBox.isSelected());
         settings.setMovesetsGoodDamagingPercent(pmsForceGoodDamagingSlider.getValue());
         settings.setBlockBrokenMovesetMoves(pmsNoGameBreakingMovesCheckBox.isSelected());
+        settings.setNoBannedMoves(pmsNoBannedMovesCheckBox.isSelected());
+        settings.setOnlyRandomizeBannedMoves(pmsOnlyRandomizeBannedMovesCheckBox.isSelected());
         settings.setEvolutionMovesForAll(pmsEvolutionMovesCheckBox.isVisible() &&
                 pmsEvolutionMovesCheckBox.isSelected());
 
@@ -2259,15 +2272,12 @@ public class NewRandomizerGUI {
         spRandomTwoEvosRadioButton.setSelected(false);
         spComboBox1.setVisible(true);
         spComboBox1.setEnabled(false);
-        spComboBox1.setSelectedIndex(0);
         spComboBox1.setModel(new DefaultComboBoxModel<>());
         spComboBox2.setVisible(true);
         spComboBox2.setEnabled(false);
-        spComboBox2.setSelectedIndex(0);
         spComboBox2.setModel(new DefaultComboBoxModel<>());
         spComboBox3.setVisible(true);
         spComboBox3.setEnabled(false);
-        spComboBox3.setSelectedIndex(0);
         spComboBox3.setModel(new DefaultComboBoxModel<>());
         spRandomizeStarterHeldItemsCheckBox.setVisible(true);
         spRandomizeStarterHeldItemsCheckBox.setEnabled(false);
@@ -2381,6 +2391,12 @@ public class NewRandomizerGUI {
         pmsNoGameBreakingMovesCheckBox.setVisible(true);
         pmsNoGameBreakingMovesCheckBox.setEnabled(false);
         pmsNoGameBreakingMovesCheckBox.setSelected(false);
+        pmsNoBannedMovesCheckBox.setVisible(true);
+        pmsNoBannedMovesCheckBox.setEnabled(false);
+        pmsNoBannedMovesCheckBox.setSelected(false);
+        pmsOnlyRandomizeBannedMovesCheckBox.setVisible(true);
+        pmsOnlyRandomizeBannedMovesCheckBox.setEnabled(false);
+        pmsOnlyRandomizeBannedMovesCheckBox.setSelected(false);
         pmsForceGoodDamagingCheckBox.setVisible(true);
         pmsForceGoodDamagingCheckBox.setEnabled(false);
         pmsForceGoodDamagingCheckBox.setSelected(false);
@@ -3458,6 +3474,10 @@ public class NewRandomizerGUI {
             pmsReorderDamagingMovesCheckBox.setSelected(false);
             pmsNoGameBreakingMovesCheckBox.setEnabled(false);
             pmsNoGameBreakingMovesCheckBox.setSelected(false);
+            pmsNoBannedMovesCheckBox.setEnabled(false);
+            pmsNoBannedMovesCheckBox.setSelected(false);
+            pmsOnlyRandomizeBannedMovesCheckBox.setEnabled(false);
+            pmsOnlyRandomizeBannedMovesCheckBox.setSelected(false);
             pmsEvolutionMovesCheckBox.setEnabled(false);
             pmsEvolutionMovesCheckBox.setSelected(false);
         } else {
@@ -3465,7 +3485,13 @@ public class NewRandomizerGUI {
             pmsForceGoodDamagingCheckBox.setEnabled(true);
             pmsReorderDamagingMovesCheckBox.setEnabled(true);
             pmsNoGameBreakingMovesCheckBox.setEnabled(true);
+            pmsNoBannedMovesCheckBox.setEnabled(true);
+            pmsOnlyRandomizeBannedMovesCheckBox.setEnabled(pmsNoBannedMovesCheckBox.isSelected());
             pmsEvolutionMovesCheckBox.setEnabled(true);
+        }
+
+        if (!pmsOnlyRandomizeBannedMovesCheckBox.isEnabled()) {
+            pmsOnlyRandomizeBannedMovesCheckBox.setSelected(false);
         }
 
         if (pmsGuaranteedLevel1MovesCheckBox.isSelected()) {
@@ -4048,15 +4074,21 @@ public class NewRandomizerGUI {
         }
 
         haveCheckedBannedPokemon = true;
+    }
 
+    private void checkBannedMoves() {
+        BannedMoveSet bannedMoveSet;
         try {
             File currentFile = new File(SysConstants.ROOT_PATH + SysConstants.bannedMovesFile);
             if (currentFile.exists()) {
-                FileFunctions.getBannedMoves();
+                bannedMoveSet = FileFunctions.getBannedMoves();
             }
         } catch (IOException e) {
-            // For now just ignore if banned moves is invalid, or we could add another bundle string
+            JOptionPane.showMessageDialog(frame, bundle.getString("GUI.invalidBannedMoves"));
+            return;
         }
+
+        haveCheckedBannedMoves = true;
     }
 
     private boolean verifySafeBannedPokemon() {

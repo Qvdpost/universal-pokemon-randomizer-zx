@@ -35,10 +35,7 @@ import java.io.OutputStream;
 import java.util.*;
 
 public class BannedMoveSet {
-
-    private Set<Integer> bannedMoves;
-    private BannedMoveSet next;
-    private BannedMoveSet previous;
+    private Map<String, String> bannedMoves;
 
     private static final int BANNED_MOVE_VERSION = 1;
 
@@ -46,41 +43,15 @@ public class BannedMoveSet {
     // Standard constructor: read binary data from an input stream.
     public BannedMoveSet(InputStream data) throws IOException {
 
-        if (data.read() != BANNED_MOVE_VERSION) {
+        int version = data.read();
+        if (version != BANNED_MOVE_VERSION) {
             throw new IOException("Invalid banned move file provided.");
         }
 
-        bannedMoves = readIDsBlock(data);
+        bannedMoves = readMappingBlock(data);
     }
 
-    public BannedMoveSet(BannedMoveSet bannedSet) {
-        bannedMoves = new HashSet<>();
-        this.setBannedMoves(bannedSet.getBannedMoves());
-        this.setPrevious(bannedSet);
-        bannedSet.setNext(this);
-    }
-
-    // Alternate constructor: blank all lists
-    public BannedMoveSet() {
-        bannedMoves = new HashSet<>();
-    }
-
-
-
-    public BannedMoveSet getNext() {
-        return this.next;
-    }
-    public void setNext(BannedMoveSet bannedSet) {
-        this.next = bannedSet;
-    }
-    public BannedMoveSet getPrevious() {
-        return this.previous;
-    }
-    public void setPrevious(BannedMoveSet bannedSet) {
-        this.previous = bannedSet;
-    }
-
-    private Set<Integer> readIDsBlock(InputStream in) throws IOException {
+    private Set<String> readIDsBlock(InputStream in) throws IOException {
         // Read the size of the block to come.
         byte[] szData = FileFunctions.readFullyIntoBuffer(in, 4);
         int size = FileFunctions.readFullIntBigEndian(szData, 0);
@@ -90,21 +61,73 @@ public class BannedMoveSet {
 
         // Read the block and translate it into a list of ID's.
         byte[] idData = FileFunctions.readFullyIntoBuffer(in, size);
-        List<Integer> ids = new ArrayList<>();
+        List<String> ids = new ArrayList<>();
         Scanner sc = new Scanner(new ByteArrayInputStream(idData), "UTF-8");
         while (sc.hasNextLine()) {
             String id = sc.nextLine().trim();
             if (!id.isEmpty()) {
-                try {
-                    ids.add(Integer.parseInt(id));
-                } catch (NumberFormatException e) {
-                    throw new IOException("File contains non-numeric values.");
-                }
+                ids.add(id);
             }
         }
         sc.close();
 
         return new HashSet<>(ids);
+    }
+
+    private Map<String, String> readMappingBlock(InputStream in) throws IOException {
+        // Read the size of the block to come.
+        byte[] szData = FileFunctions.readFullyIntoBuffer(in, 4);
+        int size = FileFunctions.readFullIntBigEndian(szData, 0);
+        if (in.available() < size) {
+            throw new IOException("Invalid size specified.");
+        }
+
+        // Read the block and translate it into a map of Name -> Replacement.
+        byte[] mappingData = FileFunctions.readFullyIntoBuffer(in, size);
+        Map<String, String> mapping = new HashMap<>();
+        Scanner sc = new Scanner(new ByteArrayInputStream(mappingData), "UTF-8");
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine().trim();
+            if (!line.isEmpty()) {
+                if (line.contains(":")) {
+                    String[] parts = line.split(":", 2);
+                    mapping.put(parts[0].trim(), parts[1].trim());
+                } else {
+                    mapping.put(line, "random");
+                }
+            }
+        }
+        sc.close();
+
+        return mapping;
+    }
+
+    // Alternate constructor: blank all lists
+    public BannedMoveSet() {
+        bannedMoves = new HashMap<>();
+    }
+
+    private Set<String> readNamesBlock(InputStream in) throws IOException {
+        // Read the size of the block to come.
+        byte[] szData = FileFunctions.readFullyIntoBuffer(in, 4);
+        int size = FileFunctions.readFullIntBigEndian(szData, 0);
+        if (in.available() < size) {
+            throw new IOException("Invalid size specified.");
+        }
+
+        // Read the block and translate it into a list of ID's.
+        byte[] nameData = FileFunctions.readFullyIntoBuffer(in, size);
+        List<String> names = new ArrayList<>();
+        Scanner sc = new Scanner(new ByteArrayInputStream(nameData), "UTF-8");
+        while (sc.hasNextLine()) {
+            String name = sc.nextLine().trim();
+            if (!name.isEmpty()) {
+                names.add(name);
+            }
+        }
+        sc.close();
+
+        return new HashSet<>(names);
     }
 
     public byte[] getBytes() throws IOException {
@@ -117,56 +140,56 @@ public class BannedMoveSet {
         return baos.toByteArray();
     }
 
-    private void writeMoveBlock(OutputStream out, Set<Integer> moves) throws IOException {
+    private void writeMoveBlock(OutputStream out, Map<String, String> moves) throws IOException {
         String newln = SysConstants.LINE_SEP;
-        StringBuilder outIDs = new StringBuilder();
+        StringBuilder outNames = new StringBuilder();
         boolean first = true;
-        for (Integer move : moves) {
+        for (Map.Entry<String, String> entry : moves.entrySet()) {
             if (!first) {
-                outIDs.append(newln);
+                outNames.append(newln);
             }
             first = false;
-            outIDs.append(move);
+            outNames.append(entry.getKey()).append(":").append(entry.getValue());
         }
-        byte[] moveData = outIDs.toString().getBytes("UTF-8");
+        byte[] moveData = outNames.toString().getBytes("UTF-8");
         byte[] szData = new byte[4];
         FileFunctions.writeFullIntBigEndian(szData, 0, moveData.length);
         out.write(szData);
         out.write(moveData);
     }
 
-    public Set<Integer> getBannedMoves() {
-        return Collections.unmodifiableSet(bannedMoves);
+    public Map<String, String> getBannedMoves() {
+        return Collections.unmodifiableMap(bannedMoves);
     }
 
 
-    public void addBannedMove(Integer move) {
-        bannedMoves.add(move);
+    public void addBannedMove(String move) {
+        bannedMoves.put(move, "random");
     }
     public void addBannedMove(Move move) {
-        bannedMoves.add(move.number);
+        bannedMoves.put(move.name, "random");
     }
 
-    public void addBannedMove(List<Integer> moves) {
-        bannedMoves.addAll(moves);
+    public void addBannedMove(List<String> moves) {
+        moves.forEach(m -> bannedMoves.put(m, "random"));
     }
 
-    public void removeBannedMove(Integer move) {
+    public void removeBannedMove(String move) {
         bannedMoves.remove(move);
     }
-    public void removeBannedMove(List<Integer> moves) { moves.forEach(bannedMoves::remove); }
+    public void removeBannedMove(List<String> moves) { moves.forEach(bannedMoves::remove); }
 
-    public void setBannedMoves(Collection<Integer> moves) {
+    public void setBannedMoves(Map<String, String> moves) {
         bannedMoves.clear();
-        bannedMoves.addAll(moves);
+        bannedMoves.putAll(moves);
     }
 
     public boolean contains(Move move) {
-        return bannedMoves.contains(move.number);
+        return bannedMoves.containsKey(move.name);
     }
 
-    public boolean contains(Integer move) {
-        return bannedMoves.contains(move);
+    public boolean contains(String move) {
+        return bannedMoves.containsKey(move);
     }
 
 }

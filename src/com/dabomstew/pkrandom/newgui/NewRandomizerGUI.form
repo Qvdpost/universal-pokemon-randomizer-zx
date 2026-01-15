@@ -1489,9 +1489,31 @@
                       <toolTipText resource-bundle="com/dabomstew/pkrandom/newgui/Bundle" key="GUI.pmsNoGameBreakingMovesCheckBox.toolTipText"/>
                     </properties>
                   </component>
-                  <component id="aba8f" class="javax.swing.JCheckBox" binding="pmsForceGoodDamagingCheckBox" default-binding="true">
+                  <component id="b2a1c" class="javax.swing.JCheckBox" binding="pmsNoBannedMovesCheckBox">
                     <constraints>
                       <grid row="4" column="2" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <enabled value="false"/>
+                      <text resource-bundle="com/dabomstew/pkrandom/newgui/Bundle" key="GUI.pmsNoBannedMovesCheckBox.text"/>
+                      <toolTipText resource-bundle="com/dabomstew/pkrandom/newgui/Bundle" key="GUI.pmsNoBannedMovesCheckBox.toolTipText"/>
+                    </properties>
+                  </component>
+                  <component id="c5d2b" class="javax.swing.JCheckBox" binding="pmsOnlyRandomizeBannedMovesCheckBox">
+                    <constraints>
+                      <grid row="5" column="2" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <gridbag weightx="0.0" weighty="0.0"/>
+                    </constraints>
+                    <properties>
+                      <enabled value="false"/>
+                      <text resource-bundle="com/dabomstew/pkrandom/newgui/Bundle" key="GUI.pmsOnlyRandomizeBannedMovesCheckBox.text"/>
+                      <toolTipText resource-bundle="com/dabomstew/pkrandom/newgui/Bundle" key="GUI.pmsOnlyRandomizeBannedMovesCheckBox.toolTipText"/>
+                    </properties>
+                  </component>
+                  <component id="aba8f" class="javax.swing.JCheckBox" binding="pmsForceGoodDamagingCheckBox" default-binding="true">
+                    <constraints>
+                      <grid row="6" column="2" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                       <gridbag weightx="0.0" weighty="0.0"/>
                     </constraints>
                     <properties>
@@ -1520,7 +1542,7 @@
                   </component>
                   <component id="c6162" class="javax.swing.JSlider" binding="pmsForceGoodDamagingSlider" default-binding="true">
                     <constraints>
-                      <grid row="5" column="2" row-span="1" col-span="2" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <grid row="7" column="2" row-span="1" col-span="2" vsize-policy="0" hsize-policy="6" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                       <gridbag weightx="0.0" weighty="0.0"/>
                     </constraints>
                     <properties>
@@ -1536,7 +1558,7 @@
                   </component>
                   <component id="7a835" class="javax.swing.JCheckBox" binding="pmsEvolutionMovesCheckBox">
                     <constraints>
-                      <grid row="6" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <grid row="8" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                       <gridbag weightx="0.0" weighty="0.0"/>
                     </constraints>
                     <properties>

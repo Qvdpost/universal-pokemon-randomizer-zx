@@ -33,10 +33,11 @@ import com.dabomstew.pkrandom.pokemon.Type;
 import com.dabomstew.pkrandom.romhandlers.RomHandler;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -46,11 +47,14 @@ import java.util.stream.Collectors;
 public class BannedMoveEditorDialog extends javax.swing.JDialog {
 
     private List<Move> allMoves;
+    private List<Move> validMoves;
     private int allMovesSize;
     RomHandler romHandler;
     private BannedMoveSet bannedMoves;
     private ImageIcon emptyIcon = new ImageIcon(getClass().getResource("/com/dabomstew/pkrandom/newgui/emptyIcon.png"));
     java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("com/dabomstew/pkrandom/newgui/Bundle");
+
+    private DefaultTableModel tableModel;
 
     /**
      * Creates new form BannedMoveEditorDialog
@@ -65,6 +69,8 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
         }
         romHandler = initRomHandler;
         allMoves = initRomHandler.getMoves();
+        validMoves = allMoves.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        validMoves.sort(Comparator.comparing(m -> m.name));
         allMovesSize = allMoves.size();
 
         initComponents();
@@ -76,7 +82,7 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
 
         try {
             bannedMoves = FileFunctions.getBannedMoves();
-            populateMoves(bannedMovesText, bannedMoves.getBannedMoves());
+            populateMoves(bannedMoves.getBannedMoves());
 
         } catch (IOException ex) {
             java.awt.EventQueue.invokeLater(() -> JOptionPane.showMessageDialog(BannedMoveEditorDialog.this,
@@ -84,29 +90,25 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
         }
 
         pendingChanges = false;
-
-        addDocListener(bannedMovesText);
+        updateMoveDetails();
     }
 
-    private void addDocListener(JTextArea textArea) {
-        textArea.getDocument().addDocumentListener(new DocumentListener() {
-
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                pendingChanges = true;
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                pendingChanges = true;
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                pendingChanges = true;
-            }
-        });
-
+    private void updateMoveDetails() {
+        int index = moveCombo.getSelectedIndex();
+        if (index == -1) {
+            moveDetailsLabel.setText("");
+            return;
+        }
+        Move m = validMoves.get(index);
+        StringBuilder sb = new StringBuilder("<html>");
+        sb.append("<b>Type:</b> ").append(m.type.camelCase()).append("<br/>");
+        sb.append("<b>Category:</b> ").append(com.dabomstew.pkrandom.RomFunctions.camelCase(m.category.toString())).append("<br/>");
+        sb.append("<b>Power:</b> ").append(m.power == 0 ? "---" : m.power).append("<br/>");
+        sb.append("<b>Accuracy:</b> ").append(m.hitratio == 0 ? "---" : (int) m.hitratio).append("<br/>");
+        sb.append("<b>PP:</b> ").append(m.pp).append("<br/>");
+        sb.append("<b>Priority:</b> ").append(m.priority).append("<br/>");
+        sb.append("</html>");
+        moveDetailsLabel.setText(sb.toString());
     }
 
     private void formWindowClosing() {
@@ -122,91 +124,54 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
         }
     }
 
-    private void populateMoves(JTextArea textArea, Set<Integer> ids) {
-        StringBuilder sb = new StringBuilder();
-        List<Integer> sortedIds = new ArrayList<>(ids);
-        Collections.sort(sortedIds);
-        for (Integer id : sortedIds) {
-            sb.append(id).append(SysConstants.LINE_SEP);
+    private void populateMoves(Map<String, String> mapping) {
+        tableModel.setRowCount(0);
+        List<String> sortedNames = new ArrayList<>(mapping.keySet());
+        Collections.sort(sortedNames);
+        for (String name : sortedNames) {
+            tableModel.addRow(new Object[]{name, mapping.get(name)});
         }
-        textArea.setText(sb.toString());
         updateBannedCount();
     }
 
-    private Set<Integer> getIdsFromText(JTextArea textArea) {
-        Set<Integer> ids = new HashSet<Integer>();
-        String text = textArea.getText();
-        Scanner sc = new Scanner(text);
-        while (sc.hasNextLine()) {
-            String line = sc.nextLine().trim();
-            if (!line.isEmpty()) {
-                try {
-                    ids.add(Integer.parseInt(line));
-                } catch (NumberFormatException ignored) {
-                }
-            }
+    private Map<String, String> getNamesFromTable() {
+        Map<String, String> mapping = new HashMap<>();
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            mapping.put((String) tableModel.getValueAt(i, 0), (String) tableModel.getValueAt(i, 1));
         }
-        sc.close();
-        return ids;
+        return mapping;
     }
 
     private void updateBannedCount() {
-        Set<Integer> idsInGame = new HashSet<>();
-        allMoves.forEach(m -> idsInGame.add(m.number));
+        Set<String> namesInGame = new HashSet<>();
+        validMoves.forEach(m -> namesInGame.add(m.name));
 
-        Set<Integer> bannedIds = getIdsFromText(bannedMovesText);
-        long inGameCount = bannedIds.stream().filter(idsInGame::contains).count();
+        Map<String, String> bannedMapping = getNamesFromTable();
+        long inGameCount = bannedMapping.keySet().stream().filter(namesInGame::contains).count();
         currentlyBannedNumber.setText(String.format("<html><center>%s<br/>%d<br/>%s %d %s",
                 bundle.getString("BannedMoveEditorDialog.currentlyBannedNumber0.text"),
                 inGameCount,
                 bundle.getString("BannedMoveEditorDialog.currentlyBannedNumber1.text"),
-                allMovesSize,
+                validMoves.size(),
                 bundle.getString("BannedMoveEditorDialog.currentlyBannedNumber2.text")));
     }
 
-    private void addUndoStep() {
-        bannedMoves = new BannedMoveSet(bannedMoves);
-        bannedMoves.setBannedMoves(getIdsFromText(bannedMovesText));
-        undoBtn.setEnabled(true);
-        redoBtn.setEnabled(false);
-    }
-
-    /**
-     * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
-     */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">
     private void initComponents() {
-
         bannedFileChooser = new javax.swing.JFileChooser();
+        bannedFileChooser.setFileFilter(new BannedMoveFileFilter());
+
         mainPanel = new javax.swing.JPanel();
         moveLabel = new javax.swing.JLabel();
         moveCombo = new javax.swing.JComboBox<>();
         banBtn = new javax.swing.JButton();
         unbanBtn = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
-        bannedMovesText = new javax.swing.JTextArea();
+        bannedMovesTable = new javax.swing.JTable();
         currentlyBannedNumber = new javax.swing.JLabel();
         clearBtn = new javax.swing.JButton();
-        invertBtn = new javax.swing.JButton();
         saveBtn = new javax.swing.JButton();
         loadBtn = new javax.swing.JButton();
         closeBtn = new javax.swing.JButton();
-        banByTypePanel = new javax.swing.JPanel();
-        typeBanScroll = new javax.swing.JScrollPane();
-        typeBanPanel = new javax.swing.JPanel();
-        checkAllBtn = new javax.swing.JButton();
-        banByTypeBtn = new javax.swing.JButton();
-        unbanByTypeBtn = new javax.swing.JButton();
-        banRandomTypePanel = new javax.swing.JPanel();
-        banRandomTypeLabel = new javax.swing.JLabel();
-        banRandomTypeSpinner = new javax.swing.JSpinner();
-        banRandomTypeButton = new javax.swing.JButton();
-        unbanRandomTypeButton = new javax.swing.JButton();
-        banRandomTypeSpoiler = new javax.swing.JCheckBox();
-        undoBtn = new javax.swing.JButton();
-        redoBtn = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
         setTitle(bundle.getString("BannedMoveEditorDialog.title")); // NOI18N
@@ -218,9 +183,12 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
         });
 
         moveLabel.setText("Move:");
+        moveCombo.setModel(new javax.swing.DefaultComboBoxModel<>(validMoves.stream().map(m -> m.name).toArray(String[]::new)));
+        moveCombo.addActionListener(evt -> updateMoveDetails());
 
-        List<String> moveNames = allMoves.stream().map(m -> m.name).collect(Collectors.toList());
-        moveCombo.setModel(new javax.swing.DefaultComboBoxModel<>(moveNames.toArray(new String[0])));
+        moveDetailsLabel = new javax.swing.JLabel();
+        moveDetailsLabel.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+        moveDetailsLabel.setText("");
 
         banBtn.setText(bundle.getString("BannedMoveEditorDialog.banBtn.text")); // NOI18N
         banBtn.addActionListener(evt -> banBtnActionPerformed());
@@ -228,19 +196,58 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
         unbanBtn.setText(bundle.getString("BannedMoveEditorDialog.unbanBtn.text")); // NOI18N
         unbanBtn.addActionListener(evt -> unbanBtnActionPerformed());
 
-        bannedMovesText.setColumns(10);
-        bannedMovesText.setRows(5);
-        bannedMovesText.setToolTipText(bundle.getString("BannedMoveEditorDialog.bannedMoveTextArea.tooltipText")); // NOI18N
-        jScrollPane1.setViewportView(bannedMovesText);
+        tableModel = new DefaultTableModel(new Object[]{"Banned Move", "Replacement"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 1;
+            }
+        };
+        tableModel.addTableModelListener(e -> {
+            if (e.getType() == javax.swing.event.TableModelEvent.UPDATE && e.getColumn() == 1) {
+                int row = e.getFirstRow();
+                String bannedMove = (String) tableModel.getValueAt(row, 0);
+                String replacement = (String) tableModel.getValueAt(row, 1);
+
+                if (!replacement.equalsIgnoreCase("random")) {
+                    boolean alreadyBanned = false;
+                    for (int i = 0; i < tableModel.getRowCount(); i++) {
+                        if (((String) tableModel.getValueAt(i, 0)).equalsIgnoreCase(replacement)) {
+                            alreadyBanned = true;
+                            break;
+                        }
+                    }
+
+                    if (alreadyBanned) {
+                        final int finalRow = row;
+                        java.awt.EventQueue.invokeLater(() -> {
+                            JOptionPane.showMessageDialog(this,
+                                    "The selected replacement move is already banned. Reverting to RANDOM.",
+                                    "Invalid Replacement", JOptionPane.WARNING_MESSAGE);
+                            tableModel.setValueAt("RANDOM", finalRow, 1);
+                        });
+                    }
+                }
+            }
+            pendingChanges = true;
+            updateBannedCount();
+        });
+        bannedMovesTable.setModel(tableModel);
+        bannedMovesTable.setToolTipText(bundle.getString("BannedMoveEditorDialog.bannedMoveTextArea.tooltipText")); // NOI18N
+
+        JComboBox<String> replacementCombo = new JComboBox<>();
+        replacementCombo.addItem("RANDOM");
+        for (Move m : validMoves) {
+            replacementCombo.addItem(m.name);
+        }
+        bannedMovesTable.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(replacementCombo));
+
+        jScrollPane1.setViewportView(bannedMovesTable);
 
         currentlyBannedNumber.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         currentlyBannedNumber.setText(bundle.getString("BannedMoveEditorDialog.currentlyBannedNumber0.text")); // NOI18N
 
         clearBtn.setText(bundle.getString("BannedMoveEditorDialog.clearbtn.text")); // NOI18N
         clearBtn.addActionListener(evt -> clearBtnActionPerformed());
-
-        invertBtn.setText(bundle.getString("BannedMoveEditorDialog.invertBtn.text")); // NOI18N
-        invertBtn.addActionListener(evt -> invertBtnActionPerformed());
 
         saveBtn.setText(bundle.getString("BannedMoveEditorDialog.saveBtn.text")); // NOI18N
         saveBtn.addActionListener(evt -> saveBtnActionPerformed());
@@ -250,122 +257,6 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
 
         closeBtn.setText(bundle.getString("BannedMoveEditorDialog.closeBtn.text")); // NOI18N
         closeBtn.addActionListener(evt -> closeBtnActionPerformed());
-
-        banByTypePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("BannedMoveEditorDialog.banByTypeBtn.text"))); // NOI18N
-
-        typeBanPanel.setLayout(new javax.swing.BoxLayout(typeBanPanel, javax.swing.BoxLayout.Y_AXIS));
-        typeCheckBoxes = new ArrayList<>();
-        for (com.dabomstew.pkrandom.pokemon.Type t : com.dabomstew.pkrandom.pokemon.Type.values()) {
-            if (!romHandler.typeInGame(t)) {
-                continue;
-            }
-            JCheckBox cb = new JCheckBox(t.toString());
-            cb.setName(t.name());
-            typeCheckBoxes.add(cb);
-            typeBanPanel.add(cb);
-        }
-        typeBanScroll.setViewportView(typeBanPanel);
-
-        checkAllBtn.setText(bundle.getString("BannedMoveEditorDialog.checkAllBtn.text")); // NOI18N
-        checkAllBtn.addActionListener(evt -> checkAllBtnActionPerformed());
-
-        banByTypeBtn.setText(bundle.getString("BannedMoveEditorDialog.banBtn.text")); // NOI18N
-        banByTypeBtn.setToolTipText(bundle.getString("BannedMoveEditorDialog.banMoveTypeButton.tooltip")); // NOI18N
-        banByTypeBtn.addActionListener(evt -> banByTypeBtnActionPerformed());
-
-        unbanByTypeBtn.setText(bundle.getString("BannedMoveEditorDialog.unbanBtn.text")); // NOI18N
-        unbanByTypeBtn.setToolTipText(bundle.getString("BannedMoveEditorDialog.unbanMoveTypeButton.tooltip")); // NOI18N
-        unbanByTypeBtn.addActionListener(evt -> unbanByTypeBtnActionPerformed());
-
-        javax.swing.GroupLayout banByTypePanelLayout = new javax.swing.GroupLayout(banByTypePanel);
-        banByTypePanel.setLayout(banByTypePanelLayout);
-        banByTypePanelLayout.setHorizontalGroup(
-                banByTypePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(banByTypePanelLayout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(banByTypePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(typeBanScroll, javax.swing.GroupLayout.DEFAULT_SIZE, 140, Short.MAX_VALUE)
-                                        .addComponent(checkAllBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addGroup(banByTypePanelLayout.createSequentialGroup()
-                                                .addComponent(banByTypeBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 65, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(unbanByTypeBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                                .addContainerGap())
-        );
-        banByTypePanelLayout.setVerticalGroup(
-                banByTypePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(banByTypePanelLayout.createSequentialGroup()
-                                .addContainerGap()
-                                .addComponent(typeBanScroll, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(checkAllBtn)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(banByTypePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(banByTypeBtn)
-                                        .addComponent(unbanByTypeBtn))
-                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-
-        banRandomTypePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(bundle.getString("BannedMoveEditorDialog.banRandomTypeLabel.text"))); // NOI18N
-
-        banRandomTypeLabel.setText("Count:");
-
-        banRandomTypeSpinner.setModel(new javax.swing.SpinnerNumberModel(1, 1, typeCheckBoxes.size(), 1));
-
-        banRandomTypeButton.setText(bundle.getString("BannedMoveEditorDialog.banBtn.text")); // NOI18N
-        banRandomTypeButton.setToolTipText(bundle.getString("BannedMoveEditorDialog.banRandomTypeButton.tooltipText")); // NOI18N
-        banRandomTypeButton.addActionListener(evt -> banRandomTypeButtonActionPerformed());
-
-        unbanRandomTypeButton.setText(bundle.getString("BannedMoveEditorDialog.unbanBtn.text")); // NOI18N
-        unbanRandomTypeButton.setToolTipText(bundle.getString("BannedMoveEditorDialog.unbanRandomTypeButton.tooltipText")); // NOI18N
-        unbanRandomTypeButton.addActionListener(evt -> unbanRandomTypeButtonActionPerformed());
-
-        banRandomTypeSpoiler.setText(bundle.getString("BannedMoveEditorDialog.banRandomTypeSpoiler.text")); // NOI18N
-        banRandomTypeSpoiler.setToolTipText(bundle.getString("BannedMoveEditorDialog.banRandomTypeSpoiler.tooltipText")); // NOI18N
-
-        javax.swing.GroupLayout banRandomTypePanelLayout = new javax.swing.GroupLayout(banRandomTypePanel);
-        banRandomTypePanel.setLayout(banRandomTypePanelLayout);
-        banRandomTypePanelLayout.setHorizontalGroup(
-                banRandomTypePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(banRandomTypePanelLayout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(banRandomTypePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addGroup(banRandomTypePanelLayout.createSequentialGroup()
-                                                .addComponent(banRandomTypeLabel)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(banRandomTypeSpinner))
-                                        .addGroup(banRandomTypePanelLayout.createSequentialGroup()
-                                                .addComponent(banRandomTypeButton, javax.swing.GroupLayout.PREFERRED_SIZE, 65, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(unbanRandomTypeButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                                        .addGroup(banRandomTypePanelLayout.createSequentialGroup()
-                                                .addComponent(banRandomTypeSpoiler)
-                                                .addGap(0, 0, Short.MAX_VALUE)))
-                                .addContainerGap())
-        );
-        banRandomTypePanelLayout.setVerticalGroup(
-                banRandomTypePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(banRandomTypePanelLayout.createSequentialGroup()
-                                .addContainerGap()
-                                .addGroup(banRandomTypePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(banRandomTypeLabel)
-                                        .addComponent(banRandomTypeSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(banRandomTypePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(banRandomTypeButton)
-                                        .addComponent(unbanRandomTypeButton))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(banRandomTypeSpoiler)
-                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-
-        undoBtn.setText(bundle.getString("BannedMoveEditorDialog.undoBtn.text")); // NOI18N
-        undoBtn.setEnabled(false);
-        undoBtn.addActionListener(evt -> undoBtnActionPerformed());
-
-        redoBtn.setText(bundle.getString("BannedMoveEditorDialog.redoBtn.text")); // NOI18N
-        redoBtn.setEnabled(false);
-        redoBtn.addActionListener(evt -> redoBtnActionPerformed());
 
         javax.swing.GroupLayout mainPanelLayout = new javax.swing.GroupLayout(mainPanel);
         mainPanel.setLayout(mainPanelLayout);
@@ -382,21 +273,17 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
                                                 .addComponent(banBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                                 .addComponent(unbanBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                                        .addComponent(banByTypePanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addComponent(banRandomTypePanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                        .addComponent(moveDetailsLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(currentlyBannedNumber, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 250, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(currentlyBannedNumber, javax.swing.GroupLayout.PREFERRED_SIZE, 250, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                 .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                         .addComponent(clearBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addComponent(invertBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                         .addComponent(saveBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                         .addComponent(loadBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addComponent(closeBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addComponent(undoBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addComponent(redoBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                        .addComponent(closeBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         mainPanelLayout.setVerticalGroup(
@@ -413,28 +300,23 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
                                                         .addComponent(banBtn)
                                                         .addComponent(unbanBtn))
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(banByTypePanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(banRandomTypePanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                .addComponent(moveDetailsLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                                         .addGroup(mainPanelLayout.createSequentialGroup()
-                                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 350, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 250, Short.MAX_VALUE)
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(currentlyBannedNumber, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                                .addComponent(currentlyBannedNumber, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                )
                                         .addGroup(mainPanelLayout.createSequentialGroup()
-                                                .addComponent(undoBtn)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(redoBtn)
-                                                .addGap(18, 18, 18)
                                                 .addComponent(clearBtn)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(invertBtn)
                                                 .addGap(18, 18, 18)
                                                 .addComponent(saveBtn)
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                                 .addComponent(loadBtn)
                                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addComponent(closeBtn)))
-                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                                .addComponent(closeBtn))
+                                        )
+                                .addGap(45, 45, 45)
+                        )
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -449,53 +331,50 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
         );
 
         pack();
-    }// </editor-fold>
+    }
 
     private void banBtnActionPerformed() {
-        addUndoStep();
         int index = moveCombo.getSelectedIndex();
-        Move m = allMoves.get(index);
-        Set<Integer> ids = getIdsFromText(bannedMovesText);
-        ids.add(m.number);
-        populateMoves(bannedMovesText, ids);
+        Move m = validMoves.get(index);
+        Map<String, String> names = getNamesFromTable();
+        names.put(m.name, "RANDOM");
+        populateMoves(names);
     }
 
     private void unbanBtnActionPerformed() {
-        addUndoStep();
         int index = moveCombo.getSelectedIndex();
-        Move m = allMoves.get(index);
-        Set<Integer> ids = getIdsFromText(bannedMovesText);
-        ids.remove(m.number);
-        populateMoves(bannedMovesText, ids);
+        Move m = validMoves.get(index);
+        Map<String, String> names = getNamesFromTable();
+        names.remove(m.name);
+        populateMoves(names);
     }
 
     private void clearBtnActionPerformed() {
-        addUndoStep();
-        populateMoves(bannedMovesText, new HashSet<>());
-    }
-
-    private void invertBtnActionPerformed() {
-        addUndoStep();
-        Set<Integer> ids = getIdsFromText(bannedMovesText);
-        Set<Integer> invertedIds = new HashSet<>();
-        for (Move m : allMoves) {
-            if (!ids.contains(m.number)) {
-                invertedIds.add(m.number);
-            }
-        }
-        populateMoves(bannedMovesText, invertedIds);
+        populateMoves(new HashMap<>());
     }
 
     private void saveBtnActionPerformed() {
-        try {
-            byte[] data = bannedMoves.getBytes();
-            FileOutputStream fos = new FileOutputStream(SysConstants.ROOT_PATH + SysConstants.bannedMovesFile);
-            fos.write(data);
-            fos.close();
-            pendingChanges = false;
-            JOptionPane.showMessageDialog(this, "Banned moves saved successfully.");
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Error saving banned moves: " + ex.getMessage());
+        bannedFileChooser.setSelectedFile(new File(SysConstants.ROOT_PATH + SysConstants.bannedMovesFile));
+        int returnVal = bannedFileChooser.showSaveDialog(this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            File fh = bannedFileChooser.getSelectedFile();
+
+            fh = FileFunctions.fixFilename(fh, "rnbm");
+            try {
+                DataOutputStream dos = new DataOutputStream(new FileOutputStream(fh));
+                bannedMoves.setBannedMoves(getNamesFromTable());
+                byte[] data = bannedMoves.getBytes();
+
+                dos.write(data);
+                dos.close();
+
+                FileFunctions.writeBytesToFile(SysConstants.ROOT_PATH + SysConstants.bannedMovesFile, data);
+
+                pendingChanges = false;
+                JOptionPane.showMessageDialog(this, "Banned moves saved successfully.");
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error saving banned moves: " + ex.getMessage());
+            }
         }
     }
 
@@ -506,8 +385,8 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
             File file = bannedFileChooser.getSelectedFile();
             try {
                 BannedMoveSet loaded = new BannedMoveSet(new java.io.FileInputStream(file));
-                addUndoStep();
-                populateMoves(bannedMovesText, loaded.getBannedMoves());
+                bannedMoves = loaded;
+                populateMoves(loaded.getBannedMoves());
             } catch (IOException ex) {
                 JOptionPane.showMessageDialog(this, "Error loading banned moves: " + ex.getMessage());
             }
@@ -518,136 +397,20 @@ public class BannedMoveEditorDialog extends javax.swing.JDialog {
         formWindowClosing();
     }
 
-    private void checkAllBtnActionPerformed() {
-        boolean allChecked = typeCheckBoxes.stream().allMatch(AbstractButton::isSelected);
-        typeCheckBoxes.forEach(cb -> cb.setSelected(!allChecked));
-    }
-
-    private void banByTypeBtnActionPerformed() {
-        addUndoStep();
-        Set<Type> selectedTypes = typeCheckBoxes.stream()
-                .filter(AbstractButton::isSelected)
-                .map(cb -> Type.valueOf(cb.getName()))
-                .collect(Collectors.toSet());
-
-        Set<Integer> ids = getIdsFromText(bannedMovesText);
-        for (Move m : allMoves) {
-            if (selectedTypes.contains(m.type)) {
-                ids.add(m.number);
-            }
-        }
-        populateMoves(bannedMovesText, ids);
-    }
-
-    private void unbanByTypeBtnActionPerformed() {
-        addUndoStep();
-        Set<Type> selectedTypes = typeCheckBoxes.stream()
-                .filter(AbstractButton::isSelected)
-                .map(cb -> Type.valueOf(cb.getName()))
-                .collect(Collectors.toSet());
-
-        Set<Integer> ids = getIdsFromText(bannedMovesText);
-        for (Move m : allMoves) {
-            if (selectedTypes.contains(m.type)) {
-                ids.remove(m.number);
-            }
-        }
-        populateMoves(bannedMovesText, ids);
-    }
-
-    private void banRandomTypeButtonActionPerformed() {
-        addUndoStep();
-        int count = (int) banRandomTypeSpinner.getValue();
-        List<Type> allTypes = typeCheckBoxes.stream()
-                .map(cb -> Type.valueOf(cb.getName()))
-                .collect(Collectors.toList());
-        Collections.shuffle(allTypes);
-        List<Type> selectedTypes = allTypes.subList(0, Math.min(count, allTypes.size()));
-
-        Set<Integer> ids = getIdsFromText(bannedMovesText);
-        for (Move m : allMoves) {
-            if (selectedTypes.contains(m.type)) {
-                ids.add(m.number);
-            }
-        }
-        populateMoves(bannedMovesText, ids);
-        if (banRandomTypeSpoiler.isSelected()) {
-            JOptionPane.showMessageDialog(this, "Banned types: " + selectedTypes.stream().map(Type::toString).collect(Collectors.joining(", ")));
-        }
-    }
-
-    private void unbanRandomTypeButtonActionPerformed() {
-        addUndoStep();
-        int count = (int) banRandomTypeSpinner.getValue();
-        List<Type> allTypes = typeCheckBoxes.stream()
-                .map(cb -> Type.valueOf(cb.getName()))
-                .collect(Collectors.toList());
-        Collections.shuffle(allTypes);
-        List<Type> selectedTypes = allTypes.subList(0, Math.min(count, allTypes.size()));
-
-        Set<Integer> ids = getIdsFromText(bannedMovesText);
-        for (Move m : allMoves) {
-            if (selectedTypes.contains(m.type)) {
-                ids.remove(m.number);
-            }
-        }
-        populateMoves(bannedMovesText, ids);
-        if (banRandomTypeSpoiler.isSelected()) {
-            JOptionPane.showMessageDialog(this, "Unbanned types: " + selectedTypes.stream().map(Type::toString).collect(Collectors.joining(", ")));
-        }
-    }
-
-    private void undoBtnActionPerformed() {
-        if (bannedMoves.getPrevious() != null) {
-            bannedMoves = bannedMoves.getPrevious();
-            populateMoves(bannedMovesText, bannedMoves.getBannedMoves());
-            redoBtn.setEnabled(true);
-            if (bannedMoves.getPrevious() == null) {
-                undoBtn.setEnabled(false);
-            }
-        }
-    }
-
-    private void redoBtnActionPerformed() {
-        if (bannedMoves.getNext() != null) {
-            bannedMoves = bannedMoves.getNext();
-            populateMoves(bannedMovesText, bannedMoves.getBannedMoves());
-            undoBtn.setEnabled(true);
-            if (bannedMoves.getNext() == null) {
-                redoBtn.setEnabled(false);
-            }
-        }
-    }
-
     private javax.swing.JButton banBtn;
-    private javax.swing.JButton banByTypeBtn;
-    private javax.swing.JPanel banByTypePanel;
-    private javax.swing.JButton banRandomTypeButton;
-    private javax.swing.JLabel banRandomTypeLabel;
-    private javax.swing.JPanel banRandomTypePanel;
-    private javax.swing.JCheckBox banRandomTypeSpoiler;
-    private javax.swing.JSpinner banRandomTypeSpinner;
     private javax.swing.JFileChooser bannedFileChooser;
-    private javax.swing.JTextArea bannedMovesText;
-    private javax.swing.JButton checkAllBtn;
+    private javax.swing.JTable bannedMovesTable;
     private javax.swing.JButton clearBtn;
     private javax.swing.JButton closeBtn;
     private javax.swing.JLabel currentlyBannedNumber;
-    private javax.swing.JButton invertBtn;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JButton loadBtn;
     private javax.swing.JPanel mainPanel;
     private javax.swing.JComboBox<String> moveCombo;
+    private javax.swing.JLabel moveDetailsLabel;
     private javax.swing.JLabel moveLabel;
-    private javax.swing.JButton redoBtn;
     private javax.swing.JButton saveBtn;
-    private javax.swing.JPanel typeBanPanel;
-    private javax.swing.JScrollPane typeBanScroll;
     private javax.swing.JButton unbanBtn;
-    private javax.swing.JButton unbanByTypeBtn;
-    private javax.swing.JButton unbanRandomTypeButton;
-    private javax.swing.JButton undoBtn;
 
-    private List<JCheckBox> typeCheckBoxes;
     private boolean pendingChanges = false;
 }
