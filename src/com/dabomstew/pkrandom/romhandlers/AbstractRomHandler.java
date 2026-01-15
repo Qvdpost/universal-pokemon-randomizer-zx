@@ -3447,6 +3447,8 @@ public abstract class AbstractRomHandler implements RomHandler {
     public void randomizeMovesLearnt(Settings settings) {
         boolean typeThemed = settings.getMovesetsMod() == Settings.MovesetsMod.RANDOM_PREFER_SAME_TYPE;
         boolean noBroken = settings.isBlockBrokenMovesetMoves();
+        boolean noBanned = settings.isNoBannedMoves();
+        boolean onlyBanned = settings.isOnlyRandomizeBannedMoves();
         boolean forceStartingMoves = supportsFourStartingMoves() && settings.isStartWithGuaranteedMoves();
         int forceStartingMoveCount = settings.getGuaranteedMoveCount();
         double goodDamagingPercentage = settings.isMovesetsForceGoodDamaging()
@@ -3456,13 +3458,14 @@ public abstract class AbstractRomHandler implements RomHandler {
 
         // Get current sets
         Map<Integer, List<MoveLearnt>> movesets = this.getMovesLearnt();
+        List<Move> allMoves = this.getMoves();
 
         // Build sets of moves
         List<Move> validMoves = new ArrayList<>();
         List<Move> validDamagingMoves = new ArrayList<>();
         Map<Type, List<Move>> validTypeMoves = new HashMap<>();
         Map<Type, List<Move>> validTypeDamagingMoves = new HashMap<>();
-        createSetsOfMoves(noBroken, validMoves, validDamagingMoves, validTypeMoves, validTypeDamagingMoves);
+        createSetsOfMoves(noBroken, noBanned, settings.getBannedMoves(), validMoves, validDamagingMoves, validTypeMoves, validTypeDamagingMoves);
 
         for (Integer pkmnNum : movesets.keySet()) {
             List<Integer> learnt = new ArrayList<>();
@@ -3526,6 +3529,30 @@ public abstract class AbstractRomHandler implements RomHandler {
 
             // Replace moves as needed
             for (int i = 0; i < moves.size(); i++) {
+                if (onlyBanned && !settings.getBannedMoves().contains(allMoves.get(moves.get(i).move))) {
+                    learnt.add(moves.get(i).move);
+                    continue;
+                }
+
+                Move currentMv = allMoves.get(moves.get(i).move);
+                if (currentMv != null && settings.getBannedMoves().contains(currentMv)) {
+                    String replacementName = settings.getBannedMoves().getBannedMoves().get(currentMv.name);
+                    if (replacementName != null && !replacementName.equalsIgnoreCase("random")) {
+                        Move replacementMv = allMoves.stream()
+                                .filter(m -> m != null && m.name.equalsIgnoreCase(replacementName))
+                                .findFirst().orElse(null);
+                        if (replacementMv != null) {
+                            learnt.add(replacementMv.number);
+                            if (i == lv1index) {
+                                lv1AttackingMove = replacementMv.number;
+                            } else if (replacementMv.isGoodDamaging(perfectAccuracy)) {
+                                goodDamagingLeft--;
+                            }
+                            continue;
+                        }
+                    }
+                }
+
                 // should this move be forced damaging?
                 boolean attemptDamaging = i == lv1index || goodDamagingLeft > 0;
 
@@ -3633,19 +3660,22 @@ public abstract class AbstractRomHandler implements RomHandler {
     public void randomizeEggMoves(Settings settings) {
         boolean typeThemed = settings.getMovesetsMod() == Settings.MovesetsMod.RANDOM_PREFER_SAME_TYPE;
         boolean noBroken = settings.isBlockBrokenMovesetMoves();
+        boolean noBanned = settings.isNoBannedMoves();
+        boolean onlyBanned = settings.isOnlyRandomizeBannedMoves();
         double goodDamagingPercentage = settings.isMovesetsForceGoodDamaging()
                 ? settings.getMovesetsGoodDamagingPercent() / 100.0
                 : 0;
 
         // Get current sets
         Map<Integer, List<Integer>> movesets = this.getEggMoves();
+        List<Move> allMoves = this.getMoves();
 
         // Build sets of moves
         List<Move> validMoves = new ArrayList<>();
         List<Move> validDamagingMoves = new ArrayList<>();
         Map<Type, List<Move>> validTypeMoves = new HashMap<>();
         Map<Type, List<Move>> validTypeDamagingMoves = new HashMap<>();
-        createSetsOfMoves(noBroken, validMoves, validDamagingMoves, validTypeMoves, validTypeDamagingMoves);
+        createSetsOfMoves(noBroken, noBanned, settings.getBannedMoves(), validMoves, validDamagingMoves, validTypeMoves, validTypeDamagingMoves);
 
         for (Integer pkmnNum : movesets.keySet()) {
             List<Integer> learnt = new ArrayList<>();
@@ -3669,6 +3699,28 @@ public abstract class AbstractRomHandler implements RomHandler {
 
             // Replace moves as needed
             for (int i = 0; i < moves.size(); i++) {
+                if (onlyBanned && !settings.getBannedMoves().contains(allMoves.get(moves.get(i)))) {
+                    learnt.add(moves.get(i));
+                    continue;
+                }
+
+                Move currentMv = allMoves.get(moves.get(i));
+                if (currentMv != null && settings.getBannedMoves().contains(currentMv)) {
+                    String replacementName = settings.getBannedMoves().getBannedMoves().get(currentMv.name);
+                    if (replacementName != null && !replacementName.equalsIgnoreCase("random")) {
+                        Move replacementMv = allMoves.stream()
+                                .filter(m -> m != null && m.name.equalsIgnoreCase(replacementName))
+                                .findFirst().orElse(null);
+                        if (replacementMv != null) {
+                            learnt.add(replacementMv.number);
+                            if (replacementMv.isGoodDamaging(perfectAccuracy)) {
+                                goodDamagingLeft--;
+                            }
+                            continue;
+                        }
+                    }
+                }
+
                 // should this move be forced damaging?
                 boolean attemptDamaging = goodDamagingLeft > 0;
 
@@ -3754,6 +3806,11 @@ public abstract class AbstractRomHandler implements RomHandler {
 
     private void createSetsOfMoves(boolean noBroken, List<Move> validMoves, List<Move> validDamagingMoves,
             Map<Type, List<Move>> validTypeMoves, Map<Type, List<Move>> validTypeDamagingMoves) {
+        createSetsOfMoves(noBroken, false, null, validMoves, validDamagingMoves, validTypeMoves, validTypeDamagingMoves);
+    }
+
+    private void createSetsOfMoves(boolean noBroken, boolean noBanned, BannedMoveSet customBanned, List<Move> validMoves, List<Move> validDamagingMoves,
+            Map<Type, List<Move>> validTypeMoves, Map<Type, List<Move>> validTypeDamagingMoves) {
         List<Move> allMoves = this.getMoves();
         List<Integer> hms = this.getHMMoves();
         Set<Integer> allBanned = new HashSet<Integer>(noBroken ? this.getGameBreakingMoves() : Collections.EMPTY_SET);
@@ -3763,7 +3820,8 @@ public abstract class AbstractRomHandler implements RomHandler {
         allBanned.addAll(this.getIllegalMoves());
 
         for (Move mv : allMoves) {
-            if (mv != null && !GlobalConstants.bannedRandomMoves[mv.number] && !allBanned.contains(mv.number)) {
+            if (mv != null && !GlobalConstants.bannedRandomMoves[mv.number] && !allBanned.contains(mv.number)
+                    && (!noBanned || customBanned == null || !customBanned.contains(mv))) {
                 validMoves.add(mv);
                 if (mv.type != null) {
                     if (!validTypeMoves.containsKey(mv.type)) {

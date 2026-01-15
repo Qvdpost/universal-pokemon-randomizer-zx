@@ -126,6 +126,8 @@ public class NewRandomizerGUI {
     private JCheckBox pmsGuaranteedLevel1MovesCheckBox;
     private JCheckBox pmsReorderDamagingMovesCheckBox;
     private JCheckBox pmsNoGameBreakingMovesCheckBox;
+    private JCheckBox pmsNoBannedMovesCheckBox;
+    private JCheckBox pmsOnlyRandomizeBannedMovesCheckBox;
     private JCheckBox pmsForceGoodDamagingCheckBox;
     private JSlider pmsGuaranteedLevel1MovesSlider;
     private JSlider pmsForceGoodDamagingSlider;
@@ -343,6 +345,7 @@ public class NewRandomizerGUI {
     private JPopupMenu settingsMenu;
     private JMenuItem customNamesEditorMenuItem;
     private JMenuItem bannedPokemonEditorMenuItem;
+    private JMenuItem bannedMoveEditorMenuItem;
     private JMenuItem applyGameUpdateMenuItem;
     private JMenuItem removeGameUpdateMenuItem;
     private JMenuItem loadGetSettingsMenuItem;
@@ -350,7 +353,7 @@ public class NewRandomizerGUI {
     private JMenuItem batchRandomizationMenuItem;
 
     private ImageIcon emptyIcon = new ImageIcon(getClass().getResource("/com/dabomstew/pkrandom/newgui/emptyIcon.png"));
-    private boolean haveCheckedCustomNames, haveCheckedBannedPokemon, unloadGameOnSuccess;
+    private boolean haveCheckedCustomNames, haveCheckedBannedPokemon, haveCheckedBannedMoves, unloadGameOnSuccess;
     private Map<String, String> gameUpdates = new TreeMap<>();
 
     private List<String> trainerSettings = new ArrayList<>();
@@ -371,6 +374,7 @@ public class NewRandomizerGUI {
 
         haveCheckedCustomNames = false;
         haveCheckedBannedPokemon = false;
+        haveCheckedBannedMoves = false;
         attemptReadConfig();
         initExplicit();
         initTweaksPanel();
@@ -387,6 +391,10 @@ public class NewRandomizerGUI {
 
         if (!haveCheckedBannedPokemon) {
             checkBannedPokemon();
+        }
+
+        if (!haveCheckedBannedMoves) {
+            checkBannedMoves();
         }
 
         new Thread(() -> {
@@ -459,6 +467,9 @@ public class NewRandomizerGUI {
         pmsRandomCompletelyRadioButton.addActionListener(e -> enableOrDisableSubControls());
         pmsMetronomeOnlyModeRadioButton.addActionListener(e -> enableOrDisableSubControls());
         pmsGuaranteedLevel1MovesCheckBox.addActionListener(e -> enableOrDisableSubControls());
+        pmsNoGameBreakingMovesCheckBox.addActionListener(e -> enableOrDisableSubControls());
+        pmsNoBannedMovesCheckBox.addActionListener(e -> enableOrDisableSubControls());
+        pmsOnlyRandomizeBannedMovesCheckBox.addActionListener(e -> enableOrDisableSubControls());
         pmsForceGoodDamagingCheckBox.addActionListener(e -> enableOrDisableSubControls());
         tpForceFullyEvolvedAtCheckBox.addActionListener(e -> enableOrDisableSubControls());
         tpPercentageLevelModifierCheckBox.addActionListener(e -> enableOrDisableSubControls());
@@ -522,6 +533,7 @@ public class NewRandomizerGUI {
         settingsButton.addActionListener(e -> settingsMenu.show(settingsButton,0,settingsButton.getHeight()));
         customNamesEditorMenuItem.addActionListener(e -> new CustomNamesEditorDialog(frame));
         bannedPokemonEditorMenuItem.addActionListener(e -> new BannedPokemonEditorDialog(frame, romHandler));
+        bannedMoveEditorMenuItem.addActionListener(e -> new BannedMoveEditorDialog(frame, romHandler));
         applyGameUpdateMenuItem.addActionListener(e -> applyGameUpdateMenuItemActionPerformed());
         removeGameUpdateMenuItem.addActionListener(e -> removeGameUpdateMenuItemActionPerformed());
         loadGetSettingsMenuItem.addActionListener(e -> loadGetSettingsMenuItemActionPerformed());
@@ -742,6 +754,10 @@ public class NewRandomizerGUI {
         bannedPokemonEditorMenuItem = new JMenuItem();
         bannedPokemonEditorMenuItem.setText(bundle.getString("GUI.bannedPokemonEditorMenuItem.text"));
         settingsMenu.add(bannedPokemonEditorMenuItem);
+
+        bannedMoveEditorMenuItem = new JMenuItem();
+        bannedMoveEditorMenuItem.setText(bundle.getString("GUI.bannedMoveEditorMenuItem.text"));
+        settingsMenu.add(bannedMoveEditorMenuItem);
 
         loadGetSettingsMenuItem = new JMenuItem();
         loadGetSettingsMenuItem.setText(bundle.getString("GUI.loadGetSettingsMenuItem.text"));
@@ -978,7 +994,8 @@ public class NewRandomizerGUI {
         try {
             CustomNamesSet cns = FileFunctions.getCustomNames();
             BannedPokemonSet bnd = FileFunctions.getBannedPokemon();
-            performRandomization(fh.getAbsolutePath(), seed, cns, bnd, outputType == SaveType.DIRECTORY);
+            BannedMoveSet bnm = FileFunctions.getBannedMoves();
+            performRandomization(fh.getAbsolutePath(), seed, cns, bnd, bnm, outputType == SaveType.DIRECTORY);
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(frame, bundle.getString("GUI.cantLoadPresetFiles"));
         }
@@ -1052,8 +1069,8 @@ public class NewRandomizerGUI {
         }
     }
 
-    private void performRandomization(final String filename, final long seed, CustomNamesSet customNames, BannedPokemonSet bannedPokemon, boolean saveAsDirectory) {
-        final Settings settings = createSettingsFromState(customNames, bannedPokemon);
+    private void performRandomization(final String filename, final long seed, CustomNamesSet customNames, BannedPokemonSet bannedPokemon, BannedMoveSet bannedMoves, boolean saveAsDirectory) {
+        final Settings settings = createSettingsFromState(customNames, bannedPokemon, bannedMoves);
         final boolean raceMode = settings.isRaceMode();
         final boolean batchRandomization = batchRandomizationSettings.isBatchRandomizationEnabled() && !presetMode;
         // Setup verbose log
@@ -1254,7 +1271,7 @@ public class NewRandomizerGUI {
                 // Apply the seed we were given
                 RandomSource.seed(seed);
                 presetMode = true;
-                performRandomization(fh.getAbsolutePath(), seed, pld.getCustomNames(), pld.getBannedPokemon(), outputType == SaveType.DIRECTORY);
+                performRandomization(fh.getAbsolutePath(), seed, pld.getCustomNames(), pld.getBannedPokemon(), pld.getBannedMoves(), outputType == SaveType.DIRECTORY);
             }
         }
 
@@ -1590,6 +1607,8 @@ public class NewRandomizerGUI {
         pmsForceGoodDamagingCheckBox.setSelected(settings.isMovesetsForceGoodDamaging());
         pmsForceGoodDamagingSlider.setValue(settings.getMovesetsGoodDamagingPercent());
         pmsNoGameBreakingMovesCheckBox.setSelected(settings.isBlockBrokenMovesetMoves());
+        pmsNoBannedMovesCheckBox.setSelected(settings.isNoBannedMoves());
+        pmsOnlyRandomizeBannedMovesCheckBox.setSelected(settings.isOnlyRandomizeBannedMoves());
         pmsEvolutionMovesCheckBox.setSelected(settings.isEvolutionMovesForAll());
 
         tpSimilarStrengthCheckBox.setSelected(settings.isTrainersUsePokemonOfSimilarStrength());
@@ -1765,8 +1784,11 @@ public class NewRandomizerGUI {
         this.enableOrDisableSubControls();
     }
 
-    private Settings createSettingsFromState(CustomNamesSet customNames, BannedPokemonSet bannedPokemon) {
+    private Settings createSettingsFromState(CustomNamesSet customNames, BannedPokemonSet bannedPokemon, BannedMoveSet bannedMoves) {
         Settings settings = new Settings();
+        settings.setCustomNames(customNames);
+        settings.setBannedPokemon(bannedPokemon);
+        settings.setBannedMoves(bannedMoves);
         settings.setRomName(this.romHandler.getROMName());
 
         settings.setLimitPokemon(limitPokemonCheckBox.isSelected() && currentRestrictions != null);
@@ -1806,7 +1828,6 @@ public class NewRandomizerGUI {
         settings.setTypesMod(ptUnchangedRadioButton.isSelected(), ptRandomFollowEvolutionsRadioButton.isSelected(),
                 ptRandomCompletelyRadioButton.isSelected());
         settings.setTypesFollowMegaEvolutions(ptFollowMegaEvosCheckBox.isSelected() && ptFollowMegaEvosCheckBox.isVisible());
-        settings.setBlockBrokenMovesetMoves(pmsNoGameBreakingMovesCheckBox.isSelected());
         settings.setDualTypeOnly(ptIsDualTypeCheckBox.isSelected());
 
         settings.setMakeEvolutionsEasier(peMakeEvolutionsEasierCheckBox.isSelected());
@@ -1844,6 +1865,8 @@ public class NewRandomizerGUI {
         settings.setMovesetsForceGoodDamaging(pmsForceGoodDamagingCheckBox.isSelected());
         settings.setMovesetsGoodDamagingPercent(pmsForceGoodDamagingSlider.getValue());
         settings.setBlockBrokenMovesetMoves(pmsNoGameBreakingMovesCheckBox.isSelected());
+        settings.setNoBannedMoves(pmsNoBannedMovesCheckBox.isSelected());
+        settings.setOnlyRandomizeBannedMoves(pmsOnlyRandomizeBannedMovesCheckBox.isSelected());
         settings.setEvolutionMovesForAll(pmsEvolutionMovesCheckBox.isVisible() &&
                 pmsEvolutionMovesCheckBox.isSelected());
 
@@ -1982,7 +2005,7 @@ public class NewRandomizerGUI {
     }
 
     private Settings getCurrentSettings() throws IOException {
-        return createSettingsFromState(FileFunctions.getCustomNames(), FileFunctions.getBannedPokemon());
+        return createSettingsFromState(FileFunctions.getCustomNames(), FileFunctions.getBannedPokemon(), FileFunctions.getBannedMoves());
     }
 
     private void attemptToLogException(Exception ex, String baseMessageKey, String noLogMessageKey,
@@ -2046,10 +2069,10 @@ public class NewRandomizerGUI {
         }
     }
 
-    public String getValidRequiredROMName(String config, CustomNamesSet customNames, BannedPokemonSet bannedPokemon)
+    public String getValidRequiredROMName(String config, CustomNamesSet customNames, BannedPokemonSet bannedPokemon, BannedMoveSet bannedMoves)
             throws UnsupportedEncodingException, InvalidSupplementFilesException {
         try {
-            Utils.validatePresetSupplementFiles(config, customNames, bannedPokemon);
+            Utils.validatePresetSupplementFiles(config, customNames, bannedPokemon, bannedMoves);
         } catch (InvalidSupplementFilesException e) {
             switch (e.getType()) {
                 case CUSTOM_NAMES:
@@ -2057,6 +2080,9 @@ public class NewRandomizerGUI {
                     break;
                 case BANNED_POKEMON:
                     JOptionPane.showMessageDialog(null, bundle.getString("GUI.presetDifferentBannedPokemon"));
+                    break;
+                case BANNED_MOVES:
+                    JOptionPane.showMessageDialog(null, "Can't use this preset because you have a different set of banned Moves to the creator.");
                     break;
                 default:
                     throw e;
@@ -2246,15 +2272,12 @@ public class NewRandomizerGUI {
         spRandomTwoEvosRadioButton.setSelected(false);
         spComboBox1.setVisible(true);
         spComboBox1.setEnabled(false);
-        spComboBox1.setSelectedIndex(0);
         spComboBox1.setModel(new DefaultComboBoxModel<>());
         spComboBox2.setVisible(true);
         spComboBox2.setEnabled(false);
-        spComboBox2.setSelectedIndex(0);
         spComboBox2.setModel(new DefaultComboBoxModel<>());
         spComboBox3.setVisible(true);
         spComboBox3.setEnabled(false);
-        spComboBox3.setSelectedIndex(0);
         spComboBox3.setModel(new DefaultComboBoxModel<>());
         spRandomizeStarterHeldItemsCheckBox.setVisible(true);
         spRandomizeStarterHeldItemsCheckBox.setEnabled(false);
@@ -2368,6 +2391,12 @@ public class NewRandomizerGUI {
         pmsNoGameBreakingMovesCheckBox.setVisible(true);
         pmsNoGameBreakingMovesCheckBox.setEnabled(false);
         pmsNoGameBreakingMovesCheckBox.setSelected(false);
+        pmsNoBannedMovesCheckBox.setVisible(true);
+        pmsNoBannedMovesCheckBox.setEnabled(false);
+        pmsNoBannedMovesCheckBox.setSelected(false);
+        pmsOnlyRandomizeBannedMovesCheckBox.setVisible(true);
+        pmsOnlyRandomizeBannedMovesCheckBox.setEnabled(false);
+        pmsOnlyRandomizeBannedMovesCheckBox.setSelected(false);
         pmsForceGoodDamagingCheckBox.setVisible(true);
         pmsForceGoodDamagingCheckBox.setEnabled(false);
         pmsForceGoodDamagingCheckBox.setSelected(false);
@@ -3445,6 +3474,10 @@ public class NewRandomizerGUI {
             pmsReorderDamagingMovesCheckBox.setSelected(false);
             pmsNoGameBreakingMovesCheckBox.setEnabled(false);
             pmsNoGameBreakingMovesCheckBox.setSelected(false);
+            pmsNoBannedMovesCheckBox.setEnabled(false);
+            pmsNoBannedMovesCheckBox.setSelected(false);
+            pmsOnlyRandomizeBannedMovesCheckBox.setEnabled(false);
+            pmsOnlyRandomizeBannedMovesCheckBox.setSelected(false);
             pmsEvolutionMovesCheckBox.setEnabled(false);
             pmsEvolutionMovesCheckBox.setSelected(false);
         } else {
@@ -3452,7 +3485,13 @@ public class NewRandomizerGUI {
             pmsForceGoodDamagingCheckBox.setEnabled(true);
             pmsReorderDamagingMovesCheckBox.setEnabled(true);
             pmsNoGameBreakingMovesCheckBox.setEnabled(true);
+            pmsNoBannedMovesCheckBox.setEnabled(true);
+            pmsOnlyRandomizeBannedMovesCheckBox.setEnabled(pmsNoBannedMovesCheckBox.isSelected());
             pmsEvolutionMovesCheckBox.setEnabled(true);
+        }
+
+        if (!pmsOnlyRandomizeBannedMovesCheckBox.isEnabled()) {
+            pmsOnlyRandomizeBannedMovesCheckBox.setSelected(false);
         }
 
         if (pmsGuaranteedLevel1MovesCheckBox.isSelected()) {
@@ -4035,6 +4074,21 @@ public class NewRandomizerGUI {
         }
 
         haveCheckedBannedPokemon = true;
+    }
+
+    private void checkBannedMoves() {
+        BannedMoveSet bannedMoveSet;
+        try {
+            File currentFile = new File(SysConstants.ROOT_PATH + SysConstants.bannedMovesFile);
+            if (currentFile.exists()) {
+                bannedMoveSet = FileFunctions.getBannedMoves();
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(frame, bundle.getString("GUI.invalidBannedMoves"));
+            return;
+        }
+
+        haveCheckedBannedMoves = true;
     }
 
     private boolean verifySafeBannedPokemon() {
